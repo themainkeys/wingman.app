@@ -1,0 +1,160 @@
+
+import React from 'react';
+import { Event } from '../types';
+import { HeartIcon } from './icons/HeartIcon';
+import { BookmarkIcon } from './icons/BookmarkIcon';
+import { RepeatIcon } from './icons/RepeatIcon';
+import { CheckIcon } from './icons/CheckIcon';
+import { ShareIcon } from './icons/ShareIcon';
+import { ClockIcon } from './icons/ClockIcon';
+
+interface TimelineEventCardProps {
+  event: Event;
+  isLiked: boolean;
+  onToggleLike: (eventId: number | string) => void;
+  onViewDetails: (event: Event) => void;
+  isBookmarked: boolean;
+  onToggleBookmark: (eventId: number | string) => void;
+  venueCategory?: string;
+  venueMusicType?: string;
+  isRsvped: boolean;
+  onRsvp: (eventId: number | string) => void;
+  venueName?: string;
+  venueLocation?: string;
+  guestlistStatus?: 'pending' | 'approved' | 'rejected' | 'none';
+}
+
+export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ 
+  event, 
+  isLiked, 
+  onToggleLike, 
+  onViewDetails, 
+  isBookmarked, 
+  onToggleBookmark, 
+  venueCategory, 
+  venueMusicType, 
+  isRsvped, 
+  onRsvp, 
+  venueName, 
+  venueLocation,
+  guestlistStatus
+}) => {
+  const eventDate = new Date(event.date + 'T00:00:00'); // To avoid timezone issues
+  const month = eventDate.toLocaleString('default', { month: 'short' }).toUpperCase();
+  const day = eventDate.getDate();
+
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}?event=${event.id}`;
+    const shareData = {
+        title: `Check out ${event.title} on WINGMAN`,
+        text: event.description,
+        url: shareUrl,
+    };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData);
+        } catch (error) {
+            console.error('Error sharing:', error);
+        }
+    } else {
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            alert('Event link copied to clipboard!');
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+            alert('Sharing is not supported on this browser. Could not copy link.');
+        }
+    }
+  };
+
+  return (
+    <div
+      onClick={() => onViewDetails(event)}
+      onKeyPress={(e) => e.key === 'Enter' && onViewDetails(event)}
+      tabIndex={0}
+      role="button"
+      className="w-full flex gap-4 items-center bg-[#1C1C1E] p-4 rounded-xl border border-transparent hover:border-[#EC4899]/50 transition-colors duration-300 text-left cursor-pointer"
+      aria-label={`View details for ${event.title}`}
+    >
+      <div className="flex flex-col items-center justify-center w-16 h-16 bg-black rounded-lg flex-shrink-0">
+        <span className="text-sm font-semibold text-gray-400">{month}</span>
+        <span className="text-2xl font-bold text-white">{day}</span>
+      </div>
+      <div className="flex-grow min-w-0">
+        <div className="flex items-center gap-2">
+            <p className={`text-xs font-bold uppercase tracking-wider ${event.type === 'EXCLUSIVE' ? 'text-green-400' : 'text-purple-400'}`}>{event.type}</p>
+            {event.recurrence && <RepeatIcon className="w-4 h-4 text-gray-400" title="Recurring Event" />}
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+            <h3 className="text-lg font-bold text-white truncate">{event.title}</h3>
+            {guestlistStatus === 'approved' && (
+                <div className="bg-green-500/20 p-1 rounded-full" title="Guestlist Approved">
+                    <CheckIcon className="w-3 h-3 text-green-400" />
+                </div>
+            )}
+            {guestlistStatus === 'pending' && (
+                <div className="bg-yellow-500/20 p-1 rounded-full" title="Guestlist Request Pending">
+                    <ClockIcon className="w-3 h-3 text-yellow-400" />
+                </div>
+            )}
+        </div>
+        {venueName && venueLocation && (
+            <p className="text-xs text-gray-500 mt-1">{venueName} &bull; {venueLocation}</p>
+        )}
+        <p className="text-sm text-gray-400 mt-1 line-clamp-2">{event.description}</p>
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+            {venueCategory && <span className="text-xs font-semibold bg-gray-700 text-gray-300 px-2 py-1 rounded-md">{venueCategory}</span>}
+            {venueMusicType && <span className="text-xs font-semibold bg-gray-700 text-gray-300 px-2 py-1 rounded-md">{venueMusicType}</span>}
+        </div>
+      </div>
+       <div className="flex flex-col items-center gap-2 self-center flex-shrink-0">
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onRsvp(event.id);
+                }}
+                className={`font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 w-24 ${
+                    isRsvped
+                        ? 'bg-gray-700 text-gray-300'
+                        : 'bg-[#EC4899] text-white'
+                }`}
+                aria-label={isRsvped ? `Cancel RSVP for ${event.title}` : `RSVP for ${event.title}`}
+            >
+                {isRsvped ? (
+                    <>
+                        <CheckIcon className="w-4 h-4" />
+                        <span>Going</span>
+                    </>
+                ) : (
+                    'RSVP'
+                )}
+            </button>
+            <div className="flex items-center gap-1">
+                <button
+                    onClick={(e) => { e.stopPropagation(); onToggleLike(event.id); }}
+                    className="p-2 rounded-full text-gray-400 hover:bg-gray-800 transition-colors"
+                    aria-label={isLiked ? `Unlike ${event.title}` : `Like ${event.title}`}
+                >
+                    <HeartIcon className="w-5 h-5" isFilled={isLiked} />
+                </button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onToggleBookmark(event.id); }}
+                    className="p-2 rounded-full text-gray-400 hover:bg-gray-800 transition-colors"
+                    aria-label={isBookmarked ? `Remove ${event.title} from bookmarks` : `Bookmark ${event.title}`}
+                >
+                    <BookmarkIcon className="w-5 h-5" isFilled={isBookmarked} />
+                </button>
+                 <button
+                    onClick={handleShareClick}
+                    className="p-2 rounded-full text-gray-400 hover:bg-gray-800 transition-colors"
+                    aria-label={`Share ${event.title}`}
+                >
+                    <ShareIcon className="w-5 h-5" />
+                </button>
+            </div>
+       </div>
+    </div>
+  );
+};
