@@ -188,10 +188,11 @@ export const itineraries: Itinerary[] = [
 ];
 
 // Mock Events
+// Updated to 2025 for "Upcoming" demo
 export const events: Event[] = [
-    { id: 202, title: 'Neon Night', description: 'Glow in the dark party', image: 'https://picsum.photos/seed/neon/800/400', date: '2024-06-15', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 50, venueId: 1 },
-    { id: 204, title: 'Secret Garden', description: 'Invite only event', image: 'https://picsum.photos/seed/garden/800/400', date: '2024-06-20', type: 'INVITE ONLY', priceFemale: 0, priceMale: 100, venueId: 3 },
-    { id: 211, title: 'Summer Splash', description: 'Pool party', image: 'https://picsum.photos/seed/splash/800/400', date: '2024-07-04', type: 'EXCLUSIVE', priceFemale: 30, priceMale: 60, venueId: 2 }
+    { id: 202, title: 'Neon Night', description: 'Experience the ultimate glow-in-the-dark party at LIV. High energy beats and vibrant visuals all night long.', image: 'https://picsum.photos/seed/neon/800/400', date: '2025-06-15', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 50, venueId: 1 },
+    { id: 204, title: 'Secret Garden', description: 'An intimate, invite-only gathering at Komodo\'s lounge. Sophisticated vibes and curated cocktails.', image: 'https://picsum.photos/seed/garden/800/400', date: '2025-06-20', type: 'INVITE ONLY', priceFemale: 0, priceMale: 100, venueId: 3 },
+    { id: 211, title: 'Summer Splash', description: 'The biggest pool party of the season at Story. Cool off with great music and even better company.', image: 'https://picsum.photos/seed/splash/800/400', date: '2025-07-04', type: 'EXCLUSIVE', priceFemale: 30, priceMale: 60, venueId: 2 }
 ];
 
 export const suggestedEvents = [events[0]];
@@ -217,7 +218,7 @@ export const mockNotifications: AppNotification[] = [
 
 // Mock Chats
 export const mockGuestlistChats: GuestlistChat[] = [
-    { id: 1, venueId: 1, date: '2024-06-15', promoterId: 1, memberIds: [101, 1] }
+    { id: 1, venueId: 1, date: '2025-06-15', promoterId: 1, memberIds: [101, 1] }
 ];
 
 export const mockGuestlistChatMessages: GuestlistChatMessage[] = [
@@ -271,7 +272,7 @@ export const mockEventInvitations: EventInvitation[] = [
 ];
 
 export const mockGuestlistJoinRequests: GuestlistJoinRequest[] = [
-    { id: 1, userId: 102, venueId: 1, promoterId: 1, date: '2024-06-15', status: 'pending', attendanceStatus: 'pending', isVip: true }
+    { id: 1, userId: 102, venueId: 1, promoterId: 1, date: '2025-06-15', status: 'pending', attendanceStatus: 'pending', isVip: true }
 ];
 
 export const mockPromoterApplications: PromoterApplication[] = [

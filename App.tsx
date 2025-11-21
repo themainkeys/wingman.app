@@ -684,8 +684,29 @@ export const App: React.FC = () => {
             case 'promoterProfile':
                 if (isLoadingPromoters) return <div className="flex items-center justify-center h-screen"><Spinner className="w-12 h-12 text-[#EC4899]" /></div>;
                 const promoter = promoters.find(p => p.id === pageParams.promoterId);
-                return promoter ? <PromoterProfile promoter={promoter} onBack={() => handleNavigate('directory')} onBook={handleOpenBookingFlow} isFavorite={(currentUser.favoritePromoterIds || []).includes(promoter.id)} onToggleFavorite={handleSetFavoritePromoter} onViewVenue={(v) => handleNavigate('venueDetails', { venueId: v.id })} onJoinGuestlist={handleOpenGuestlistModal} currentUser={currentUser} onUpdateUser={handleUpdateProfile} onUpdatePromoter={handleUpdatePromoter} /> : <div className="p-8 text-center text-white">Promoter not found</div>;
+                return promoter ? <PromoterProfile promoter={promoter} onBack={() => handleNavigate('directory')} onBook={handleOpenBookingFlow} isFavorite={(currentUser.favoritePromoterIds || []).includes(promoter.id)} onToggleFavorite={handleSetFavoritePromoter} onViewVenue={(v) => handleNavigate('venueDetails', { venueId: v.id })} onJoinGuestlist={handleOpenGuestlistModal} currentUser={currentUser} onUpdateUser={handleUpdateProfile} onUpdatePromoter={handleUpdatePromoter} events={allEvents} /> : <div className="p-8 text-center text-white">Promoter not found</div>;
             case 'userProfile':
+                if (currentUser.role === UserRole.PROMOTER) {
+                    const promoterDoc = promoters.find(p => p.id === currentUser.id);
+                    if (promoterDoc) {
+                         return <PromoterProfile 
+                            promoter={promoterDoc} 
+                            onBack={() => handleNavigate('home')}
+                            onBook={() => {}}
+                            isFavorite={false}
+                            onToggleFavorite={() => {}}
+                            onViewVenue={(v) => handleNavigate('venueDetails', { venueId: v.id })} 
+                            onJoinGuestlist={() => {}}
+                            currentUser={currentUser} 
+                            onUpdateUser={handleUpdateProfile} 
+                            onUpdatePromoter={handleUpdatePromoter} 
+                            onEditProfile={() => handleNavigate('editProfile')}
+                            onNavigate={handleNavigate}
+                            tokenBalance={tokenBalance}
+                            events={allEvents}
+                        />;
+                    }
+                }
                 // Check if current user is also a promoter to pass promoter data
                 const promoterProfile = currentUser.role === UserRole.PROMOTER ? promoters.find(p => p.id === currentUser.id) : undefined;
                 return <ProfilePage onNavigate={handleNavigate} currentUser={currentUser} tokenBalance={tokenBalance} bookingHistory={mockBookingHistory} favoriteVenueIds={currentUser.favoriteVenueIds || []} venues={venues} onViewVenueDetails={(v) => handleNavigate('venueDetails', { venueId: v.id })} promoterProfile={promoterProfile} onUpdatePromoter={handleUpdatePromoter} />;
@@ -1031,6 +1052,10 @@ export const App: React.FC = () => {
                     onClose={() => setActiveModal(null)}
                     onAddToCart={handleAddToCart}
                     onNavigateToCheckout={() => handleNavigate('checkout')}
+                    onKeepBooking={() => {
+                        setActiveModal(null);
+                        handleNavigate('bookATable');
+                    }}
                 />
             )}
 

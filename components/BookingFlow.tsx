@@ -299,6 +299,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ promoter, onClose, onA
                 venueName={selectedVenue.name}
                 onCheckout={onNavigateToCheckout}
                 onKeepBooking={onKeepBooking}
+                keepBookingLabel="Keep booking"
             />
         )}
     </>

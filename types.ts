@@ -104,7 +104,7 @@ export interface Promoter {
   bio: string;
   profilePhoto: string;
   city: string;
-  weeklySchedule: { day: string; venueId: number }[];
+  weeklySchedule: { day: string; venueId?: number; eventId?: number | string }[];
   assignedVenueIds: number[];
   earnings?: number;
   isOnline?: boolean;

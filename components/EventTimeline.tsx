@@ -5,11 +5,14 @@ import { AskGabyBanner } from './AskGabyBanner';
 import { DiscoverCard } from './DiscoverCard';
 import { SuggestedEventCard } from './SuggestedEventCard';
 import { TimelineEventCard } from './TimelineEventCard';
-// FIX: Imported Promoter type to resolve reference error.
 import { Event, User, UserAccessLevel, EventInvitationRequest, Venue, UserRole, Promoter, GuestlistJoinRequest } from '../types';
 import { EventDetailModal } from './modals/EventDetailModal';
 import { MiamiMapModal } from './MiamiMapModal';
 import { EventParticipantsModal } from './modals/EventParticipantsModal';
+import { ChevronLeftIcon } from './icons/ChevronLeftIcon';
+import { ChevronRightIcon } from './icons/ChevronRightIcon';
+import { EventCard } from './EventCard';
+import { SavedVenueCard } from './SavedVenueCard';
 
 interface EventTimelineProps {
   currentUser: User;
@@ -68,6 +71,11 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
   const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'EXCLUSIVE' | 'INVITE ONLY'>('EXCLUSIVE');
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'calendar' | 'favorites' | 'likes'>('upcoming');
+  
+  // Calendar State
+  const [currentDate, setCurrentDate] = useState(new Date('2025-03-01'));
+  const [selectedDate, setSelectedDate] = useState<number | null>(null);
   
   const visibleSuggestedEvents = useMemo(() => {
     const lowercasedSearchTerm = searchTerm.toLowerCase();
@@ -76,116 +84,61 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
         if (!isSuggested) return false;
 
         const typeMatch = typeFilter === 'all' || event.type === typeFilter;
-        if (!typeMatch) return false;
+        return typeMatch;
+    });
+  }, [allEvents, searchTerm, typeFilter]);
 
-        const searchMatch = lowercasedSearchTerm === '' ||
-            event.title.toLowerCase().includes(lowercasedSearchTerm) ||
-            event.description.toLowerCase().includes(lowercasedSearchTerm);
-        if (!searchMatch) return false;
-
-        if (event.accessLevels && event.accessLevels.length > 0) {
-            if (!event.accessLevels.includes(currentUser.accessLevel)) {
-                return false;
+  const upcomingEvents = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return allEvents
+        .filter(event => {
+            const eventDate = new Date(event.date + 'T00:00:00');
+            if (eventDate < today) return false;
+            
+            if (event.accessLevels && event.accessLevels.length > 0) {
+                if (!event.accessLevels.includes(currentUser.accessLevel)) {
+                    return false;
+                }
             }
-        }
-
-        if (event.type === 'INVITE ONLY') {
-            return currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || 
-                   currentUser.accessLevel === UserAccessLevel.ACCESS_MALE || 
-                   currentUser.accessLevel === UserAccessLevel.PROMO || 
-                   currentUser.role === UserRole.ADMIN;
-        }
-        return true;
-    });
-  }, [allEvents, currentUser.accessLevel, searchTerm, currentUser.role, typeFilter]);
-
-  const visibleTimelineEvents = useMemo(() => {
-    const lowercasedSearchTerm = searchTerm.toLowerCase();
-    return allEvents.filter(event => {
-        const isTimelineEvent = Number(event.id) >= 200 || new Date(event.date).getFullYear() >= 2025;
-        if (!isTimelineEvent) return false;
-        
-        const typeMatch = typeFilter === 'all' || event.type === typeFilter;
-        if (!typeMatch) return false;
-
-        const searchMatch = lowercasedSearchTerm === '' ||
-            event.title.toLowerCase().includes(lowercasedSearchTerm) ||
-            event.description.toLowerCase().includes(lowercasedSearchTerm);
-        if (!searchMatch) return false;
-        
-        if (event.accessLevels && event.accessLevels.length > 0) {
-            if (!event.accessLevels.includes(currentUser.accessLevel)) {
-                return false;
+            if (event.type === 'INVITE ONLY') {
+                return currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || currentUser.accessLevel === UserAccessLevel.ACCESS_MALE;
             }
-        }
+            return true;
+        })
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [allEvents, currentUser.accessLevel]);
 
-        if (event.type === 'INVITE ONLY') {
-            return currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || 
-                   currentUser.accessLevel === UserAccessLevel.ACCESS_MALE || 
-                   currentUser.accessLevel === UserAccessLevel.PROMO || 
-                   currentUser.role === UserRole.ADMIN;
-        }
-        return true;
-    }).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [allEvents, currentUser.accessLevel, searchTerm, currentUser.role, typeFilter]);
+  const favoriteVenues = venues.filter(v => currentUser.favoriteVenueIds?.includes(v.id));
+  const likedEvents = allEvents.filter(e => likedEventIds.includes(getOriginalEventId(e.id)));
 
-  // Mock API call
-  const fetchEvents = (page: number): Promise<{ events: Event[], hasMore: boolean }> => {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        const start = (page - 1) * EVENTS_PER_PAGE;
-        const end = start + EVENTS_PER_PAGE;
-        const newEvents = visibleTimelineEvents.slice(start, end);
-        resolve({
-          events: newEvents,
-          hasMore: end < visibleTimelineEvents.length,
-        });
-      }, 1000); // 1-second delay
-    });
+  // Calendar Logic
+  const monthName = currentDate.toLocaleString('default', { month: 'long' });
+  const year = currentDate.getFullYear();
+
+  const handlePrevMonth = () => {
+      setSelectedDate(null);
+      setCurrentDate(prev => {
+          const newDate = new Date(prev);
+          newDate.setMonth(newDate.getMonth() - 1);
+          return newDate;
+      });
   };
 
-  useEffect(() => {
-    // Initial load or when search term changes
-    setIsLoading(true);
-    fetchEvents(1).then(result => {
-      setDisplayedEvents(result.events);
-      setHasMore(result.hasMore);
-      setIsLoading(false);
-      setPage(2);
-    });
-  }, [visibleTimelineEvents]);
-
-  const handleLoadMore = () => {
-    if (isLoading || !hasMore) return;
-
-    setIsLoading(true);
-    fetchEvents(page).then(result => {
-      setDisplayedEvents(prev => [...prev, ...result.events]);
-      setHasMore(result.hasMore);
-      setPage(prev => prev + 1);
-      setIsLoading(false);
-    });
-  };
-
-  const handleViewDetails = (event: Event) => {
-    // Mock fetching participants for the event
-    const originalId = getOriginalEventId(event.id);
-    const rsvpedUserIds = rsvpedEventIds.includes(originalId) ? [101, 102, currentUser.id] : [101, 102]; // Mock data
-    const participants = users.filter(u => rsvpedUserIds.includes(u.id));
-    setParticipantsForEvent(participants);
-    setSelectedEventForModal(event);
-  };
-
-  const getInvitationStatus = (eventId: number | string) => {
-    const request = invitationRequests.find(req => req.userId === currentUser.id && req.eventId === eventId);
-    if (!request) return 'none';
-    return request.status;
+  const handleNextMonth = () => {
+      setSelectedDate(null);
+      setCurrentDate(prev => {
+          const newDate = new Date(prev);
+          newDate.setMonth(newDate.getMonth() + 1);
+          return newDate;
+      });
   };
   
-  const handleViewParticipants = () => {
-      setIsParticipantsModalOpen(true);
+  const handleDayClick = (day: number) => {
+      setSelectedDate(day);
   };
-  
+
   const getGuestlistStatus = (event: Event) => {
       if (!guestlistRequests) return 'none';
       const request = guestlistRequests.find(req => 
@@ -196,131 +149,272 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
       return request ? request.status : 'none';
   };
 
+  const handleOpenEventModal = (event: Event) => {
+      const originalId = getOriginalEventId(event.id);
+      const rsvpedUserIds = [101, 102]; // Mock data
+      if (rsvpedEventIds.includes(originalId)) {
+          rsvpedUserIds.push(currentUser.id);
+      }
+      const eventParticipants = users.filter(u => rsvpedUserIds.includes(u.id));
+      setParticipantsForEvent(eventParticipants);
+      setSelectedEventForModal(event);
+  };
+
+  const handleCloseEventModal = () => {
+      setSelectedEventForModal(null);
+  };
+
+  const renderUpcoming = () => (
+    <div className="space-y-4">
+        {upcomingEvents.length > 0 ? (
+            upcomingEvents.map(event => {
+                const venue = venues.find(v => v.id === event.venueId);
+                return (
+                    <TimelineEventCard
+                        key={event.id}
+                        event={event}
+                        isLiked={likedEventIds.includes(getOriginalEventId(event.id))}
+                        onToggleLike={() => onToggleLike(getOriginalEventId(event.id))}
+                        onViewDetails={handleOpenEventModal}
+                        isBookmarked={bookmarkedEventIds.includes(getOriginalEventId(event.id))}
+                        onToggleBookmark={() => onToggleBookmark(getOriginalEventId(event.id))}
+                        venueCategory={venue?.category}
+                        venueMusicType={venue?.musicType}
+                        isRsvped={rsvpedEventIds.includes(getOriginalEventId(event.id))}
+                        onRsvp={() => onRsvp(getOriginalEventId(event.id))}
+                        venueName={venue?.name}
+                        venueLocation={venue?.location}
+                        guestlistStatus={getGuestlistStatus(event)}
+                    />
+                );
+            })
+        ) : (
+            <div className="text-center py-16 text-gray-500">
+                <p>No upcoming events found.</p>
+            </div>
+        )}
+    </div>
+  );
+
+  const renderCalendar = () => {
+      const daysInMonth = new Date(year, currentDate.getMonth() + 1, 0).getDate();
+      const firstDayOfMonth = new Date(year, currentDate.getMonth(), 1).getDay();
+      const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      
+      // Helper to find events on a specific day
+      const getEventsForDay = (day: number) => {
+          const dateStr = new Date(year, currentDate.getMonth(), day).toISOString().split('T')[0];
+          return upcomingEvents.filter(e => e.date === dateStr);
+      };
+
+      const calendarDays = [];
+      for (let i = 0; i < firstDayOfMonth; i++) {
+          calendarDays.push(<div key={`empty-${i}`} className="p-2"></div>);
+      }
+      for (let i = 1; i <= daysInMonth; i++) {
+          const eventsOnDay = getEventsForDay(i);
+          const hasExclusive = eventsOnDay.some(e => e.type === 'EXCLUSIVE');
+          const hasInviteOnly = eventsOnDay.some(e => e.type === 'INVITE ONLY');
+          const isSelected = selectedDate === i;
+          
+          const dayClasses = `relative flex flex-col items-center justify-center h-10 w-10 rounded-full transition-colors duration-200 ${
+              isSelected ? 'bg-white text-blue-600 font-bold' : 'text-white font-semibold hover:bg-gray-800'
+          }`;
+
+          calendarDays.push(
+              <button key={i} onClick={() => handleDayClick(i)} className={dayClasses}>
+                  <span>{i}</span>
+                  <div className="absolute bottom-1.5 flex items-center justify-center gap-0.5">
+                      {hasExclusive && <div className="w-1.5 h-1.5 bg-green-400 rounded-full" title="Exclusive Event"></div>}
+                      {hasInviteOnly && <div className="w-1.5 h-1.5 bg-purple-400 rounded-full" title="Invite Only Event"></div>}
+                  </div>
+              </button>
+          );
+      }
+
+      const selectedEvents = selectedDate ? getEventsForDay(selectedDate) : [];
+
+      return (
+          <>
+            <div className="flex items-center justify-between mb-6">
+                <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-gray-800 transition-colors">
+                    <ChevronLeftIcon className="w-6 h-6" />
+                </button>
+                <h2 className="text-2xl font-bold">{monthName} {year}</h2>
+                <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-800 transition-colors">
+                    <ChevronRightIcon className="w-6 h-6" />
+                </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-2 text-center text-gray-400 text-sm mb-4">
+                {weekDays.map(day => <div key={day}>{day}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-2 place-items-center">
+                {calendarDays}
+            </div>
+
+            {selectedDate && (
+                <div className="mt-8">
+                    <h3 className="text-xl font-bold mb-4">Events for {monthName} {selectedDate}</h3>
+                    {selectedEvents.length > 0 ? (
+                        <div className="space-y-4">
+                            {selectedEvents.map(event => {
+                                const venue = venues.find(v => v.id === event.venueId);
+                                return (
+                                    <EventCard
+                                        key={event.id}
+                                        event={event}
+                                        onViewDetails={handleOpenEventModal}
+                                        isLiked={likedEventIds.includes(getOriginalEventId(event.id))}
+                                        onToggleLike={() => onToggleLike(getOriginalEventId(event.id))}
+                                        isRsvped={rsvpedEventIds.includes(getOriginalEventId(event.id))}
+                                        onRsvp={() => onRsvp(getOriginalEventId(event.id))}
+                                        venueName={venue?.name}
+                                        venueLocation={venue?.location}
+                                        isBookmarked={bookmarkedEventIds.includes(getOriginalEventId(event.id))}
+                                        onToggleBookmark={() => onToggleBookmark(getOriginalEventId(event.id))}
+                                        venueCategory={venue?.category}
+                                        venueMusicType={venue?.musicType}
+                                        guestlistStatus={getGuestlistStatus(event)}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 text-center">No events scheduled for this day.</p>
+                    )}
+                </div>
+            )}
+          </>
+      );
+  };
+
   return (
     <>
-      <MiamiMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
-      <EventParticipantsModal isOpen={isParticipantsModalOpen} onClose={() => setIsParticipantsModalOpen(false)} participants={participantsForEvent} />
-      <div className="animate-fade-in">
-        <div className="p-4 md:px-8 mt-4">
-          <AskGabyBanner onAsk={() => onOpenGabyWithPrompt('')} />
-           <div className="mt-8 relative">
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search events by title or description..."
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-4 pl-12 focus:ring-[#EC4899] focus:border-[#EC4899]"
-                />
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                    </svg>
+      <div className="p-4 md:p-8 animate-fade-in text-white pb-24">
+        <div className="mb-8">
+            <AskGabyBanner onAsk={() => onOpenGabyWithPrompt("What events are happening this weekend?")} />
+        </div>
+
+        <div className="flex border-b border-gray-700 mb-6 overflow-x-auto no-scrollbar">
+            <button 
+                onClick={() => setActiveTab('upcoming')}
+                className={`px-4 py-2 text-lg font-semibold transition-colors flex-shrink-0 ${activeTab === 'upcoming' ? 'text-white border-b-2 border-white' : 'text-gray-400'}`}
+            >
+                Upcoming
+            </button>
+            <button 
+                onClick={() => setActiveTab('calendar')}
+                className={`px-4 py-2 text-lg font-semibold transition-colors flex-shrink-0 ${activeTab === 'calendar' ? 'text-white border-b-2 border-white' : 'text-gray-400'}`}
+            >
+                Calendar
+            </button>
+            <button 
+                onClick={() => setActiveTab('favorites')}
+                className={`px-4 py-2 text-lg font-semibold transition-colors flex-shrink-0 ${activeTab === 'favorites' ? 'text-white border-b-2 border-white' : 'text-gray-400'}`}
+            >
+                Favorites
+            </button>
+            <button 
+                onClick={() => setActiveTab('likes')}
+                className={`px-4 py-2 text-lg font-semibold transition-colors flex-shrink-0 ${activeTab === 'likes' ? 'text-white border-b-2 border-white' : 'text-gray-400'}`}
+            >
+                Likes
+            </button>
+        </div>
+
+        {activeTab === 'upcoming' && renderUpcoming()}
+        {activeTab === 'calendar' && renderCalendar()}
+        
+        {activeTab === 'favorites' && (
+            <div className="space-y-3">
+                {favoriteVenues.length > 0 ? (
+                    favoriteVenues.map(venue => (
+                        <SavedVenueCard 
+                            key={venue.id} 
+                            venue={venue} 
+                            onToggleFavorite={() => {}} // Should probably implement unfavorite here or pass handler
+                            onViewDetails={() => onBookVenue(venue)} // Simplified for now
+                        />
+                    ))
+                ) : <p className="text-gray-500 text-center py-8">No favorite venues.</p>}
+            </div>
+        )}
+
+        {activeTab === 'likes' && (
+            <div className="space-y-4">
+                {likedEvents.length > 0 ? (
+                    likedEvents.map(event => {
+                        const venue = venues.find(v => v.id === event.venueId);
+                        return (
+                            <EventCard
+                                key={event.id}
+                                event={event}
+                                onViewDetails={handleOpenEventModal}
+                                isLiked={true}
+                                onToggleLike={() => onToggleLike(getOriginalEventId(event.id))}
+                                isRsvped={rsvpedEventIds.includes(getOriginalEventId(event.id))}
+                                onRsvp={() => onRsvp(getOriginalEventId(event.id))}
+                                venueName={venue?.name}
+                                venueLocation={venue?.location}
+                                isBookmarked={bookmarkedEventIds.includes(getOriginalEventId(event.id))}
+                                onToggleBookmark={() => onToggleBookmark(getOriginalEventId(event.id))}
+                                venueCategory={venue?.category}
+                                venueMusicType={venue?.musicType}
+                                guestlistStatus={getGuestlistStatus(event)}
+                            />
+                        );
+                    })
+                ) : <p className="text-gray-500 text-center py-8">No liked events.</p>}
+            </div>
+        )}
+
+        <div className="mt-8">
+            <h2 className="text-xl font-bold mb-4">Suggested For You</h2>
+            <div className="overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
+                <div className="flex space-x-4">
+                    {visibleSuggestedEvents.map(event => {
+                        const venue = venues.find(v => v.id === event.venueId);
+                        return (
+                            <SuggestedEventCard 
+                                key={event.id} 
+                                event={event} 
+                                onViewDetails={handleOpenEventModal} 
+                                venueName={venue?.name}
+                                venueLocation={venue?.location}
+                                venueCategory={venue?.category}
+                                venueMusicType={venue?.musicType}
+                            />
+                        );
+                    })}
                 </div>
             </div>
-            <div className="mt-8 flex flex-wrap gap-2 justify-center">
-                {(['all', 'EXCLUSIVE', 'INVITE ONLY'] as const).map(type => (
-                    <button
-                        key={type}
-                        onClick={() => setTypeFilter(type)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                            typeFilter === type
-                                ? 'bg-white text-black'
-                                : 'bg-gray-800 text-white hover:bg-gray-700'
-                        }`}
-                    >
-                        {type === 'all' ? 'All Events' : type.replace('_', ' ')}
-                    </button>
-                ))}
-            </div>
-          <h2 className="text-2xl font-bold text-white mt-8 mb-4">Suggested For You</h2>
         </div>
 
-        <div className="overflow-x-auto pb-4 no-scrollbar">
-          <div className="flex space-x-4 pl-4 md:pl-8">
+        <div className="mt-8 mb-8">
             <DiscoverCard onClick={() => setIsMapOpen(true)} />
-            {visibleSuggestedEvents.map(event => {
-                const venue = venues.find(v => v.id === event.venueId);
-                return (
-                  <SuggestedEventCard 
-                    key={event.id} 
-                    event={event} 
-                    onViewDetails={handleViewDetails}
-                    venueCategory={venue?.category}
-                    venueMusicType={venue?.musicType}
-                    venueName={venue?.name}
-                    venueLocation={venue?.location}
-                  />
-                )
-            })}
-          </div>
         </div>
-        
-        {/* Vertical Timeline Section */}
-        <div className="p-4 md:px-8 mt-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Upcoming Timeline</h2>
-          <div className="space-y-4">
-            {displayedEvents.map(event => {
-                const venue = venues.find(v => v.id === event.venueId);
-                const originalId = getOriginalEventId(event.id);
-                return (
-                  <TimelineEventCard 
-                      key={event.id} 
-                      event={event} 
-                      isLiked={likedEventIds.includes(originalId)}
-                      onToggleLike={onToggleLike}
-                      onViewDetails={handleViewDetails}
-                      isBookmarked={bookmarkedEventIds.includes(originalId)}
-                      onToggleBookmark={onToggleBookmark}
-                      venueCategory={venue?.category}
-                      venueMusicType={venue?.musicType}
-                      isRsvped={rsvpedEventIds.includes(originalId)}
-                      onRsvp={onRsvp}
-                      venueName={venue?.name}
-                      venueLocation={venue?.location}
-                      guestlistStatus={getGuestlistStatus(event)}
-                  />
-                )
-            })}
-          </div>
-          
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="mt-8 text-center">
-              <button
-                onClick={handleLoadMore}
-                disabled={isLoading}
-                className="bg-gray-800 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 hover:bg-white hover:text-blue-600 disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-wait"
-                aria-live="polite"
-              >
-                {isLoading ? 'Loading...' : 'Load More'}
-              </button>
-            </div>
-          )}
-          {!isLoading && !hasMore && displayedEvents.length > 0 && (
-              <p className="mt-8 text-center text-gray-500">You've reached the end.</p>
-          )}
-           {!isLoading && visibleTimelineEvents.length === 0 && (
-             <p className="mt-8 text-center text-gray-500">No events found matching your search.</p>
-           )}
-        </div>
-
       </div>
+
       {selectedEventForModal && (
         <EventDetailModal
             event={selectedEventForModal}
-            onClose={() => setSelectedEventForModal(null)}
+            onClose={handleCloseEventModal}
             isRsvped={rsvpedEventIds.includes(getOriginalEventId(selectedEventForModal.id))}
             onRsvp={onRsvp}
             venues={venues}
-            onViewVenueExperiences={() => {}} // Not needed here
-            invitationStatus={getInvitationStatus(selectedEventForModal.id) as 'none' | 'pending' | 'approved' | 'rejected'}
+            onViewVenueExperiences={(venue) => {
+                handleCloseEventModal();
+                // Navigate to venue details logic here if needed
+            }}
+            invitationStatus={invitationRequests.find(req => req.userId === currentUser.id && req.eventId === getOriginalEventId(selectedEventForModal.id))?.status || 'none'}
             onRequestInvite={onRequestInvite}
             currentUser={currentUser}
             isBookmarked={bookmarkedEventIds.includes(getOriginalEventId(selectedEventForModal.id))}
             onToggleBookmark={onToggleBookmark}
             onPayForEvent={onPayForEvent}
             onNavigateToChat={onNavigateToChat}
-            onViewParticipants={handleViewParticipants}
+            onViewParticipants={() => setIsParticipantsModalOpen(true)}
             isSubscribed={subscribedEventIds.includes(getOriginalEventId(selectedEventForModal.id))}
             onToggleSubscription={onToggleSubscription}
             onBookVenue={onBookVenue}
@@ -329,6 +423,9 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
             onJoinGuestlist={onJoinGuestlist}
         />
       )}
+      
+      <EventParticipantsModal isOpen={isParticipantsModalOpen} onClose={() => setIsParticipantsModalOpen(false)} participants={participantsForEvent} />
+      <MiamiMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
     </>
   );
 };

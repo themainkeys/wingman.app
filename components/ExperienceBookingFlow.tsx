@@ -13,6 +13,7 @@ interface ExperienceBookingFlowProps {
   onClose: () => void;
   onAddToCart: (item: CartItem) => void;
   onNavigateToCheckout: () => void;
+  onKeepBooking: () => void;
 }
 
 const getPriceForUser = (experience: Experience, user: User): { price: number; type: string } | null => {
@@ -45,7 +46,7 @@ const getPriceForUser = (experience: Experience, user: User): { price: number; t
     return null;
 };
 
-export const ExperienceBookingFlow: React.FC<ExperienceBookingFlowProps> = ({ experience, user, onClose, onAddToCart, onNavigateToCheckout }) => {
+export const ExperienceBookingFlow: React.FC<ExperienceBookingFlowProps> = ({ experience, user, onClose, onAddToCart, onNavigateToCheckout, onKeepBooking }) => {
     const [step, setStep] = useState(1);
     const [quantity, setQuantity] = useState(1);
     const [error, setError] = useState('');
@@ -233,11 +234,8 @@ export const ExperienceBookingFlow: React.FC<ExperienceBookingFlowProps> = ({ ex
                     }}
                     venueName={experience.title}
                     onCheckout={onNavigateToCheckout}
-                    onKeepBooking={() => {
-                        setShowSuccessModal(false);
-                        onClose();
-                    }}
-                    keepBookingLabel="Keep Booking"
+                    onKeepBooking={onKeepBooking}
+                    keepBookingLabel="Keep booking"
                 />
             )}
         </>

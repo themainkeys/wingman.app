@@ -35,7 +35,7 @@ export const AddedToPlansModal: React.FC<AddedToPlansModalProps> = ({ isOpen, on
                 className="w-full bg-gray-800 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 border border-gray-700"
             >
                 <BookTableIcon className="w-5 h-5" />
-                {keepBookingLabel || "Keep Booking Tables"}
+                {keepBookingLabel || "Keep booking"}
             </button>
             
             <button 
