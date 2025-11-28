@@ -1,9 +1,13 @@
-import React, { useMemo, useState } from 'react';
+
+import React, { useState } from 'react';
 import { CartItem, Venue, User, UserRole, UserAccessLevel } from '../types';
 import { TrashIcon } from './icons/TrashIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 import { KeyIcon } from './icons/KeyIcon';
 import { ChatIcon } from './icons/ChatIcon';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { ClockIcon } from './icons/ClockIcon';
+import { CloseIcon } from './icons/CloseIcon';
 
 interface CartItemCardProps {
     item: CartItem;
@@ -27,199 +31,192 @@ const DetailRow: React.FC<{ label: string; value: string | number }> = ({ label,
     </div>
 );
 
-
 export const CartItemCard: React.FC<CartItemCardProps> = ({ item, venues, onRemove, onUpdatePaymentOption, onCompleteBooking, isBooked, onViewReceipt, onStartChat, isSelected, onToggleSelection, currentUser, onCancelRsvp }) => {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-    const canCancelRsvp = currentUser && onCancelRsvp && (
-        currentUser.role === UserRole.ADMIN ||
-        currentUser.role === UserRole.PROMOTER ||
-        currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL
-    );
-
     if (item.isPlaceholder) {
         return (
-            <div className="bg-gray-900 rounded-lg p-4 border border-dashed border-gray-700 flex flex-col gap-4">
-                <div className="flex gap-4 items-center">
-                    <img src={item.image} alt={item.name} className="w-24 h-24 rounded-md object-cover flex-shrink-0" />
+            <div className="bg-gray-900 rounded-lg p-4 border border-dashed border-gray-700 flex flex-col gap-2 group hover:border-gray-500 transition-colors">
+                <div className="flex gap-3">
+                    <img src={item.image} alt={item.name} className="w-16 h-16 rounded-md object-cover opacity-70" />
                     <div className="flex-grow">
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pre-selection</p>
-                        <h3 className="text-lg font-bold text-white mt-1 leading-tight">{item.name}</h3>
-                        {item.date && <p className="text-sm text-gray-400">{item.date}</p>}
+                        <div className="flex justify-between items-start">
+                            <p className="font-bold text-gray-300 text-sm">{item.name}</p>
+                            <button onClick={() => onRemove(item.id)} className="text-gray-500 hover:text-red-500">
+                                <TrashIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(item.date || '').toLocaleDateString()}</p>
+                        <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider bg-gray-800 text-gray-400 px-2 py-0.5 rounded">Watchlist</span>
                     </div>
-                    <button
-                        onClick={() => onRemove(item.id)}
-                        className="self-start text-gray-500 hover:text-red-500"
-                        aria-label={`Remove ${item.name} from itinerary`}
-                    >
-                        <TrashIcon className="w-5 h-5" />
-                    </button>
                 </div>
-                <button
-                    onClick={() => onCompleteBooking?.(item)}
-                    className="w-full bg-[#EC4899] text-white font-bold py-2 rounded-lg text-sm hover:bg-[#d8428a]"
-                >
-                    Complete Booking
-                </button>
+                {onCompleteBooking && (
+                    <button 
+                        onClick={() => onCompleteBooking(item)} 
+                        className="mt-2 w-full bg-gray-800 text-white text-xs font-bold py-2 rounded hover:bg-gray-700 transition-colors"
+                    >
+                        Finish Booking
+                    </button>
+                )}
             </div>
-        )
+        );
     }
 
-    const eventVenue = useMemo(() => {
-        if (item.type === 'event' && item.eventDetails) {
-            return venues.find(v => v.id === item.eventDetails.event.venueId);
-        }
-        return undefined;
-    }, [item, venues]);
-
-    const isFullPayment = item.paymentOption === 'full';
+    const isGuestlist = item.type === 'guestlist';
+    const status = isGuestlist ? item.guestlistDetails?.status : 'confirmed';
     
-    const priceText = useMemo(() => {
-        if (item.type === 'guestlist') return 'Complimentary';
-        if (item.type === 'storeItem') return `$${(item.fullPrice ?? 0).toFixed(2)}`;
-        
-        return item.paymentOption === 'full' ? `$${item.fullPrice?.toFixed(2)}` : `$${item.depositPrice?.toFixed(2)} Deposit`;
-    }, [item]);
+    const getStatusBadge = () => {
+        if (status === 'approved') {
+            return <div className="flex items-center gap-1 bg-green-900/30 text-green-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-green-900/50"><CheckCircleIcon className="w-3 h-3" /> Approved</div>;
+        }
+        if (status === 'pending') {
+            return <div className="flex items-center gap-1 bg-yellow-900/30 text-yellow-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-yellow-900/50"><ClockIcon className="w-3 h-3" /> Pending</div>;
+        }
+        if (status === 'rejected') {
+            return <div className="flex items-center gap-1 bg-red-900/30 text-red-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-red-900/50"><CloseIcon className="w-3 h-3" /> Rejected</div>;
+        }
+        return null;
+    };
 
     return (
-        <div className={`bg-gray-900 rounded-lg p-4 border transition-colors ${isSelected ? 'border-[#EC4899]' : 'border-gray-800'}`}>
-            <div className="flex gap-4">
+        <div className={`bg-gray-900 rounded-lg p-4 border transition-all duration-200 ${isSelected ? 'border-[#EC4899] bg-gray-900/80' : 'border-gray-800 hover:border-gray-700'}`}>
+            <div className="flex gap-3">
+                {/* Selection Checkbox (Only for unbooked items in cart) */}
                 {!isBooked && onToggleSelection && (
-                    <div className="flex-shrink-0 flex items-center justify-center">
-                        <input
-                            type="checkbox"
-                            checked={isSelected}
+                    <div className="flex items-center h-16">
+                        <input 
+                            type="checkbox" 
+                            checked={isSelected} 
                             onChange={() => onToggleSelection(item.id)}
-                            className="w-6 h-6 bg-gray-700 border-gray-600 text-[#EC4899] focus:ring-[#EC4899] rounded"
-                            aria-label={`Select item ${item.name}`}
+                            className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-[#EC4899] focus:ring-[#EC4899]"
                         />
                     </div>
                 )}
-                <img src={item.image} alt={item.name} className="w-24 h-24 rounded-md object-cover flex-shrink-0" />
-                <div className="flex-grow">
-                    <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">{item.type}</p>
-                    <h3 className="text-lg font-bold text-white mt-1 leading-tight">{item.name}</h3>
-                    {item.date && <p className="text-sm text-gray-400">{item.date}</p>}
-                     {item.tableDetails && item.tableDetails.tableOption && (
-                        <p className="text-xs text-gray-500 mt-1">{item.tableDetails.tableOption.name}</p>
-                    )}
-                    <p className="text-sm text-gray-400 mt-1">{priceText}</p>
-                </div>
-            </div>
 
-            {isDetailsOpen && (
-              <div className="animate-fade-in border-t border-gray-700 pt-4 mt-4 text-sm space-y-2">
-                {item.type === 'table' && item.tableDetails && (
-                    <>
-                        {item.tableDetails.promoter && <DetailRow label="Promoter" value={item.tableDetails.promoter.name} />}
-                        {item.tableDetails.numberOfGuests && <DetailRow label="Guests" value={item.tableDetails.numberOfGuests} />}
-                        {item.tableDetails.guestDetails && (
-                            <>
-                                <DetailRow label="Booked for" value={item.tableDetails.guestDetails.name} />
-                                {item.tableDetails.guestDetails.email && <DetailRow label="Guest Email" value={item.tableDetails.guestDetails.email} />}
-                                {item.tableDetails.guestDetails.phone && <DetailRow label="Guest Phone" value={item.tableDetails.guestDetails.phone} />}
-                            </>
-                        )}
-                        {item.tableDetails.selectedBottles && item.tableDetails.selectedBottles.length > 0 && (
-                            <div className="pt-2">
-                                <p className="text-gray-400 mb-1">Selected Bottles:</p>
-                                <ul className="list-disc list-inside space-y-1 pl-2">
-                                    {item.tableDetails.selectedBottles.map(bottle => (
-                                        <li key={bottle.id} className="text-white">
-                                            {bottle.quantity}x {bottle.name}
-                                        </li>
-                                    ))}
-                                </ul>
+                {/* Image */}
+                <img src={item.image} alt={item.name} className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
+                
+                {/* Main Content */}
+                <div className="flex-grow min-w-0">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="font-bold text-white text-sm truncate pr-2">{item.name}</h3>
+                            {isGuestlist && getStatusBadge()}
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        {!isBooked ? (
+                            <button onClick={() => onRemove(item.id)} className="text-gray-500 hover:text-red-500 transition-colors p-1 -mr-1">
+                                <TrashIcon className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <div className="flex gap-2">
+                                {onStartChat && (
+                                    <button onClick={() => onStartChat(item)} className="text-gray-400 hover:text-[#EC4899] transition-colors" title="Chat">
+                                        <ChatIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                                {onViewReceipt && (
+                                    <button onClick={() => onViewReceipt(item)} className="text-gray-400 hover:text-white transition-colors" title="View Ticket">
+                                        <KeyIcon className="w-5 h-5" />
+                                    </button>
+                                )}
                             </div>
                         )}
-                    </>
-                )}
-                {item.type === 'event' && (
-                    <>
-                        {eventVenue && <DetailRow label="Venue" value={`${eventVenue.name}, ${eventVenue.location}`} />}
-                        <DetailRow label="Price per person" value={`$${(item.fullPrice ?? 0).toLocaleString()}`} />
-                    </>
-                )}
-                 {item.type === 'guestlist' && item.guestlistDetails && (
-                    <>
-                        <DetailRow label="Promoter" value={item.guestlistDetails.promoter.name} />
-                        <DetailRow label="Guests" value={item.guestlistDetails.numberOfGuests} />
-                    </>
-                )}
-                {item.type === 'storeItem' && item.storeItemDetails && (
-                    <>
-                        <DetailRow label="Category" value={item.storeItemDetails.item.category} />
-                        <DetailRow label="Price (USD)" value={`$${item.storeItemDetails.item.priceUSD.toFixed(2)}`} />
-                        <DetailRow label="Price (Tokens)" value={`${item.storeItemDetails.item.price.toLocaleString()} TMKC`} />
-                    </>
-                )}
-              </div>
-            )}
-            
-            <div className="mt-4 space-y-2">
-                {isBooked ? (
-                     <div className="space-y-2">
-                        <button
-                            onClick={() => onViewReceipt?.(item)}
-                            className="w-full bg-[#EC4899] text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-[#d8428a]"
-                        >
-                            <KeyIcon className="w-4 h-4" />
-                            {item.type === 'guestlist' ? 'View Details' : 'View Receipt / QR'}
-                        </button>
-                        {(item.type === 'event' && canCancelRsvp) || item.type === 'guestlist' ? (
-                            <button
-                                onClick={() => onCancelRsvp?.(item)}
-                                className="w-full bg-red-900/50 text-red-400 font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-red-900/80"
-                            >
-                                <TrashIcon className="w-4 h-4" />
-                                {item.type === 'event' ? 'Cancel RSVP' : 'Cancel Spot'}
-                            </button>
-                        ): null}
                     </div>
-                ) : item.type === 'table' ? (
-                    <div className="bg-gray-800 rounded-lg p-1 flex">
-                        <button
-                            onClick={() => onUpdatePaymentOption(item.id, 'deposit')}
-                            className={`w-1/2 rounded-md py-2 text-sm font-semibold transition-colors ${!isFullPayment ? 'bg-amber-400 text-black' : 'text-gray-300'}`}
-                        >
-                            Deposit: ${(item.depositPrice ?? 0).toLocaleString()}
-                        </button>
-                        <button
-                            onClick={() => onUpdatePaymentOption(item.id, 'full')}
-                            className={`w-1/2 rounded-md py-2 text-sm font-semibold transition-colors ${isFullPayment ? 'bg-amber-400 text-black' : 'text-gray-300'}`}
-                        >
-                            Pay Full: ${(item.fullPrice ?? 0).toLocaleString()}
-                        </button>
-                    </div>
-                ) : null}
 
-                <div className="flex items-center justify-between pt-1">
-                     {isBooked ? (
-                         <button
-                            onClick={() => onStartChat?.(item)}
-                            disabled={!item.tableDetails?.promoter && !item.eventDetails && !item.guestlistDetails}
-                            className="flex items-center gap-2 text-xs font-semibold text-amber-400 hover:underline disabled:text-gray-500 disabled:no-underline disabled:cursor-not-allowed"
-                         >
-                            <ChatIcon className="w-4 h-4" />
-                            Chat with Wingman
-                         </button>
-                     ) : (
-                        <button
-                            onClick={() => onRemove(item.id)}
-                            className="flex items-center justify-center gap-1 text-xs text-gray-500 hover:text-red-500"
-                        >
-                            <TrashIcon className="w-4 h-4" /> Remove
-                        </button>
-                     )}
-                     <button
-                        onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-                        className="flex items-center gap-1 text-xs font-semibold text-amber-400 hover:underline"
-                    >
-                        <span>{isDetailsOpen ? 'Hide Details' : 'View Details'}</span>
-                        <ChevronDownIcon className={`w-4 h-4 transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`} />
-                    </button>
+                    <p className="text-xs text-gray-400 mt-1">{item.date || item.sortableDate}</p>
+                    
+                    {/* Price Display */}
+                    {!isGuestlist && (
+                        <div className="flex justify-between items-end mt-1">
+                            <p className="text-sm font-semibold text-white">
+                                {item.paymentOption === 'full' ? `$${item.fullPrice?.toLocaleString()}` : `$${item.depositPrice?.toLocaleString()} Deposit`}
+                            </p>
+                            
+                            {/* Payment Option Toggle (Cart Only) */}
+                            {!isBooked && item.type === 'table' && (
+                                <div className="flex bg-gray-800 rounded p-0.5">
+                                    <button 
+                                        onClick={() => onUpdatePaymentOption(item.id, 'deposit')}
+                                        className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${item.paymentOption === 'deposit' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Deposit
+                                    </button>
+                                    <button 
+                                        onClick={() => onUpdatePaymentOption(item.id, 'full')}
+                                        className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${item.paymentOption === 'full' ? 'bg-[#EC4899] text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                                    >
+                                        Full
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* Expanded Details Toggle */}
+            <button 
+                onClick={() => setIsDetailsOpen(!isDetailsOpen)} 
+                className="w-full flex items-center justify-center mt-3 pt-2 border-t border-gray-800 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            >
+                <span className="mr-1">{isDetailsOpen ? 'Hide' : 'Show'} Details</span>
+                <ChevronDownIcon className={`w-3 h-3 transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Details Section */}
+            {isDetailsOpen && (
+                <div className="mt-3 space-y-2 bg-gray-800/50 p-3 rounded-lg animate-fade-in">
+                    {item.type === 'table' && item.tableDetails && (
+                        <>
+                            <DetailRow label="Table" value={item.tableDetails.tableOption?.name || 'Standard'} />
+                            <DetailRow label="Promoter" value={item.tableDetails.promoter?.name || 'None'} />
+                            <DetailRow label="Guests" value={item.tableDetails.numberOfGuests || 0} />
+                            {item.tableDetails.selectedBottles && item.tableDetails.selectedBottles.length > 0 && (
+                                <div className="text-xs text-gray-400 pt-1">
+                                    <p className="mb-1">Bottles:</p>
+                                    <ul className="list-disc pl-4">
+                                        {item.tableDetails.selectedBottles.map((b, idx) => (
+                                            <li key={idx}>{b.quantity}x {b.name}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    
+                    {item.type === 'guestlist' && item.guestlistDetails && (
+                        <>
+                            <DetailRow label="Venue" value={item.guestlistDetails.venue.name} />
+                            <DetailRow label="Promoter" value={item.guestlistDetails.promoter.name} />
+                            <DetailRow label="Guests" value={item.guestlistDetails.numberOfGuests} />
+                            <DetailRow label="Status" value={status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Pending'} />
+                        </>
+                    )}
+
+                    {item.type === 'event' && item.eventDetails && (
+                        <>
+                            <DetailRow label="Event" value={item.eventDetails.event.title} />
+                            <DetailRow label="Tickets" value={item.quantity} />
+                        </>
+                    )}
+
+                    {item.type === 'experience' && item.experienceDetails && (
+                        <>
+                            <DetailRow label="Experience" value={item.experienceDetails.experience.title} />
+                            <DetailRow label="Guests/Qty" value={item.quantity} />
+                        </>
+                    )}
+                    
+                    {item.type === 'storeItem' && item.storeItemDetails && (
+                        <>
+                            <DetailRow label="Item" value={item.storeItemDetails.item.title} />
+                            <DetailRow label="Category" value={item.storeItemDetails.item.category} />
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

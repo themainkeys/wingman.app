@@ -1,16 +1,18 @@
 
-
 import React from 'react';
 import { Experience, UserAccessLevel, User, UserRole } from '../types';
 import { KeyIcon } from './icons/KeyIcon';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { TokenIcon } from './icons/TokenIcon';
+import { CheckIcon } from './icons/CheckIcon';
 
 interface ExperienceCardProps {
   experience: Experience;
   currentUser: User;
   onViewDetails: (experience: Experience) => void;
   onBook: (experience: Experience) => void;
+  invitationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  onRequestAccess?: (experienceId: number) => void;
 }
 
 const USD_TO_TMKC_RATE = 100;
@@ -59,17 +61,40 @@ const getAccessLevelPriority = (level: UserAccessLevel) => {
     }
 }
 
-export const ExperienceCard: React.FC<ExperienceCardProps> = ({ experience, currentUser, onViewDetails, onBook }) => {
+export const ExperienceCard: React.FC<ExperienceCardProps> = ({ experience, currentUser, onViewDetails, onBook, invitationStatus = 'none', onRequestAccess }) => {
     
     const priceDetails = getPriceForUser(experience, currentUser);
     const tokenPrice = priceDetails.price !== undefined && priceDetails.price > 0 ? priceDetails.price * USD_TO_TMKC_RATE : undefined;
 
     const renderActionButton = () => {
         if (experience.access === 'invite-only') {
+            if (invitationStatus === 'approved') {
+                 return (
+                    <button onClick={(e) => { e.stopPropagation(); onBook(experience); }} className="w-full text-center bg-[#EC4899] text-white font-bold py-2 px-4 rounded-lg transition-all duration-300 group-hover:bg-[#d8428a]" aria-label={`Book ${experience.title} now`}>
+                        Book Now
+                    </button>
+                );
+            }
+            if (invitationStatus === 'pending') {
+                 return (
+                    <button disabled className="w-full text-center bg-gray-700 text-gray-400 font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed">
+                        Request Sent
+                    </button>
+                );
+            }
+            // If status is 'none' or 'rejected' (maybe allow re-request if rejected? usually no)
             return (
-                <button onClick={(e) => { e.stopPropagation(); onViewDetails(experience); }} className="w-full text-center bg-purple-600/20 border-2 border-purple-500 text-purple-400 font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2" aria-label={`View details for invite only experience ${experience.title}`}>
+                <button 
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (onRequestAccess) onRequestAccess(experience.id); 
+                        else onViewDetails(experience);
+                    }} 
+                    className="w-full text-center bg-purple-600/20 border-2 border-purple-500 text-purple-400 font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-purple-600/30 transition-colors" 
+                    aria-label={`Request invite for ${experience.title}`}
+                >
                     <LockClosedIcon className="w-4 h-4" />
-                    Invite Only
+                    {invitationStatus === 'rejected' ? 'Request Rejected' : 'Request Invite'}
                 </button>
             );
         }

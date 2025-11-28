@@ -13,6 +13,7 @@ import { Spinner } from './icons/Spinner';
 import { StarIcon } from './icons/StarIcon';
 import { QrIcon } from './icons/QrIcon';
 import { QrScanner } from './QrScanner';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
 
 interface VenueDetailsPageProps {
   venue: Venue;
@@ -53,8 +54,8 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
   
   const assignedPromoters = promoters.filter(p => p.assignedVenueIds.includes(venue.id));
   
-  const hasApprovedGuestlist = useMemo(() => {
-    if (!isApprovedGirl) return false;
+  const activeGuestlistRequest = useMemo(() => {
+    if (!isApprovedGirl) return null;
 
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -71,19 +72,21 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
         }
     }
     
-    if (!foundDay) return false;
+    if (!foundDay) return null;
 
     const nextOpenDate = new Date(today);
     nextOpenDate.setDate(today.getDate() + daysToAdd);
     const dateString = nextOpenDate.toISOString().split('T')[0];
 
-    return guestlistJoinRequests.some(req => 
+    return guestlistJoinRequests.find(req => 
       req.userId === currentUser.id && 
       req.venueId === venue.id && 
-      req.status === 'approved' &&
       req.date === dateString
     );
   }, [guestlistJoinRequests, currentUser.id, venue.id, venue.operatingDays, isApprovedGirl]);
+
+  const hasApprovedGuestlist = activeGuestlistRequest?.status === 'approved';
+  const isCheckedIn = activeGuestlistRequest?.attendanceStatus === 'show';
 
   const videoLoadingMessages = [
     "Our AI director is setting up the scene...",
@@ -268,7 +271,13 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
       </div>
       
       <div className="p-6">
-        {hasApprovedGuestlist && (
+        {isCheckedIn && (
+            <div className="w-full flex items-center justify-center gap-3 bg-green-500/20 text-green-400 font-bold py-3 px-6 rounded-lg mb-8 border border-green-500/50">
+                <CheckCircleIcon className="w-6 h-6" />
+                Checked In
+            </div>
+        )}
+        {hasApprovedGuestlist && !isCheckedIn && (
             <button
                 onClick={() => setIsScannerOpen(true)}
                 className="w-full flex items-center justify-center gap-3 bg-white text-blue-600 font-bold py-3 px-6 rounded-lg transition-transform duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white mb-8 shadow-lg"
@@ -420,11 +429,11 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
       
        <div className={`fixed inset-x-0 ${showBottomNav ? 'bottom-20' : 'bottom-0'} bg-black/80 backdrop-blur-lg border-t border-gray-800 p-4 z-30`}>
             <div className="container mx-auto max-w-5xl text-center">
-                <button onClick={() => onBookVenue(venue)} className="w-full bg-[#EC4899] text-white font-bold py-3 px-6 rounded-lg transition-transform duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#EC4899] hover:bg-[#d8428a]" aria-label={`Book a table at ${venue.name}`}>
-                    Book a Table at {venue.name}
+                <button onClick={() => onBookVenue(venue)} className="w-full bg-[#EC4899] text-white font-bold py-3 px-6 rounded-lg transition-transform duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#EC4899] hover:bg-[#d8428a]" aria-label={`Book now at ${venue.name}`}>
+                    Book Now
                 </button>
-                 {isApprovedGirl && hasApprovedGuestlist && (
-                    <p className="text-xs text-gray-400 mt-2">joined the guestlist</p>
+                 {isApprovedGirl && hasApprovedGuestlist && !isCheckedIn && (
+                    <p className="text-xs text-gray-400 mt-2">Don't forget to check in when you arrive!</p>
                 )}
             </div>
         </div>

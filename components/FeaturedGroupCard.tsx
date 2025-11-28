@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AccessGroup } from '../types';
 import { users } from '../data/mockData';
@@ -6,11 +7,46 @@ interface FeaturedGroupCardProps {
     group: AccessGroup;
     onJoin: (groupId: number) => void;
     canJoin: boolean;
+    joinStatus?: 'none' | 'pending' | 'joined';
 }
 
-export const FeaturedGroupCard: React.FC<FeaturedGroupCardProps> = ({ group, onJoin, canJoin }) => {
+export const FeaturedGroupCard: React.FC<FeaturedGroupCardProps> = ({ group, onJoin, canJoin, joinStatus = 'none' }) => {
     
     const members = group.memberIds.map(id => users.find(u => u.id === id)).filter(Boolean).slice(0, 4);
+
+    const renderButton = () => {
+        if (!canJoin) return null;
+        
+        if (joinStatus === 'joined') {
+            return (
+                <button 
+                  disabled
+                  className="mt-4 w-full bg-green-600 text-white font-bold py-2.5 rounded-lg cursor-default"
+                >
+                    Member
+                </button>
+            );
+        }
+        if (joinStatus === 'pending') {
+            return (
+                <button 
+                  disabled
+                  className="mt-4 w-full bg-gray-700 text-gray-300 font-bold py-2.5 rounded-lg cursor-not-allowed"
+                >
+                    Request Sent
+                </button>
+            );
+        }
+        return (
+            <button 
+              onClick={() => onJoin(group.id)}
+              className="mt-4 w-full bg-amber-400 text-black font-bold py-2.5 rounded-lg hover:bg-amber-300 transition-colors"
+              aria-label={`Request to join group: ${group.name}`}
+            >
+                Request to Join
+            </button>
+        );
+    };
 
     return (
         <div className="relative flex-shrink-0 w-72 h-96 rounded-2xl overflow-hidden group text-left border border-gray-800">
@@ -29,15 +65,7 @@ export const FeaturedGroupCard: React.FC<FeaturedGroupCardProps> = ({ group, onJ
                     <p className="text-sm font-semibold text-gray-300">{group.memberIds.length} members</p>
                 </div>
 
-                {canJoin && (
-                    <button 
-                      onClick={() => onJoin(group.id)}
-                      className="mt-4 w-full bg-amber-400 text-black font-bold py-2.5 rounded-lg hover:bg-amber-300 transition-colors"
-                      aria-label={`Join group: ${group.name}`}
-                    >
-                        Join
-                    </button>
-                )}
+                {renderButton()}
             </div>
         </div>
     );

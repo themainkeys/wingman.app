@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo } from 'react';
-import { AccessGroup, User, UserRole, Page, UserAccessLevel } from '../types';
+import { AccessGroup, User, UserRole, Page, UserAccessLevel, GroupJoinRequest } from '../types';
 import { FeaturedGroupCard } from './FeaturedGroupCard';
 import { BellIcon } from './icons/BellIcon';
 import { LeaveIcon } from './icons/LeaveIcon';
@@ -9,17 +10,28 @@ interface AccessGroupsPageProps {
     currentUser: User;
     allGroups: AccessGroup[];
     onViewGroup: (groupId: number) => void;
-    onJoinGroup: (groupId: number) => void;
+    onRequestJoinGroup: (groupId: number) => void;
     onLeaveGroup: (group: AccessGroup) => void;
     groupNotificationSettings: Record<number, boolean>;
     onToggleGroupNotification: (groupId: number) => void;
     onNavigate: (page: Page) => void;
+    groupJoinRequests: GroupJoinRequest[];
 }
 
 type FilterOption = 'all' | 'popular' | 'newest';
 
-const GroupCard: React.FC<{ group: AccessGroup, onSelect: () => void, isMyGroup: boolean, isNotifOn?: boolean, onToggleNotif?: () => void, onLeave?: () => void }> = ({ group, onSelect, isMyGroup, isNotifOn, onToggleNotif, onLeave }) => (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden text-left w-full transition-colors hover:bg-gray-800 flex flex-col">
+const GroupCard: React.FC<{ 
+    group: AccessGroup, 
+    onSelect: () => void, 
+    isMyGroup: boolean, 
+    isNotifOn?: boolean, 
+    onToggleNotif?: () => void, 
+    onLeave?: () => void,
+    onRequestJoin?: () => void,
+    canJoin?: boolean,
+    requestStatus?: 'none' | 'pending'
+}> = ({ group, onSelect, isMyGroup, isNotifOn, onToggleNotif, onLeave, onRequestJoin, canJoin, requestStatus }) => (
+    <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden text-left w-full transition-colors hover:bg-gray-800 flex flex-col relative group">
         <button onClick={onSelect} className="w-full text-left flex-grow">
           <img src={group.coverImage} alt={group.name} className="w-full h-32 object-cover" />
           <div className="p-4">
@@ -41,10 +53,29 @@ const GroupCard: React.FC<{ group: AccessGroup, onSelect: () => void, isMyGroup:
                 </div>
             )}
         </div>
+        {!isMyGroup && canJoin && (
+            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                {requestStatus === 'pending' ? (
+                    <button
+                        disabled
+                        className="bg-gray-700 text-gray-300 font-bold py-2 px-4 rounded-lg text-sm cursor-not-allowed"
+                    >
+                        Request Sent
+                    </button>
+                ) : (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onRequestJoin?.(); }}
+                        className="bg-white text-blue-600 font-bold py-2 px-4 rounded-lg text-sm transition-transform hover:scale-105"
+                    >
+                        Request to Join
+                    </button>
+                )}
+            </div>
+        )}
     </div>
 );
 
-export const AccessGroupsPage: React.FC<AccessGroupsPageProps> = ({ currentUser, allGroups, onViewGroup, onJoinGroup, onLeaveGroup, groupNotificationSettings, onToggleGroupNotification, onNavigate }) => {
+export const AccessGroupsPage: React.FC<AccessGroupsPageProps> = ({ currentUser, allGroups, onViewGroup, onRequestJoinGroup, onLeaveGroup, groupNotificationSettings, onToggleGroupNotification, onNavigate, groupJoinRequests }) => {
     
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<FilterOption>('all');
@@ -79,6 +110,12 @@ export const AccessGroupsPage: React.FC<AccessGroupsPageProps> = ({ currentUser,
     const isApprovedUser = currentUser.accessLevel === UserAccessLevel.ACCESS_MALE || currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL;
     const canJoinGroups = isApprovedUser || currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.PROMOTER;
     
+    const getJoinStatus = (groupId: number) => {
+        if (myGroupIds.includes(groupId)) return 'joined';
+        if (groupJoinRequests.some(r => r.groupId === groupId && r.userId === currentUser.id)) return 'pending';
+        return 'none';
+    };
+
     return (
         <div className="p-4 md:p-8 animate-fade-in text-white space-y-12">
              <div>
@@ -86,7 +123,13 @@ export const AccessGroupsPage: React.FC<AccessGroupsPageProps> = ({ currentUser,
                 <div className="overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
                     <div className="flex space-x-4">
                         {featuredGroups.length > 0 ? featuredGroups.map(group => (
-                            <FeaturedGroupCard key={group.id} group={group} onJoin={onJoinGroup} canJoin={canJoinGroups} />
+                            <FeaturedGroupCard 
+                                key={group.id} 
+                                group={group} 
+                                onJoin={onRequestJoinGroup} 
+                                canJoin={canJoinGroups}
+                                joinStatus={getJoinStatus(group.id)} 
+                            />
                         )) : <p className="text-gray-500 text-sm">No featured groups to show right now.</p>}
                     </div>
                 </div>
@@ -142,23 +185,15 @@ export const AccessGroupsPage: React.FC<AccessGroupsPageProps> = ({ currentUser,
                  {discoverGroups.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {discoverGroups.map(group => (
-                            <div key={group.id} className="relative group">
-                                <GroupCard 
-                                    group={group} 
-                                    onSelect={() => onViewGroup(group.id)}
-                                    isMyGroup={false}
-                                />
-                                {canJoinGroups && (
-                                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => onJoinGroup(group.id)}
-                                            className="bg-white text-blue-600 font-bold py-2 px-4 rounded-lg text-sm transition-transform hover:scale-105"
-                                        >
-                                            Join
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            <GroupCard 
+                                key={group.id} 
+                                group={group} 
+                                onSelect={() => onViewGroup(group.id)}
+                                isMyGroup={false}
+                                canJoin={canJoinGroups}
+                                onRequestJoin={() => onRequestJoinGroup(group.id)}
+                                requestStatus={getJoinStatus(group.id) === 'pending' ? 'pending' : 'none'}
+                            />
                         ))}
                     </div>
                 ) : (

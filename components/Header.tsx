@@ -25,9 +25,10 @@ interface HeaderProps {
   currentUser: User;
   onOpenCart: () => void;
   cartItemCount: number;
+  showMenu?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle, showBackButton, onBack, onOpenMenu, onOpenNotifications, onOpenGroupChat, showQrScanner, onOpenScanner, hasNotifications, tokenBalance, balanceJustUpdated, currentUser, onOpenCart, cartItemCount }) => {
+export const Header: React.FC<HeaderProps> = ({ title, subtitle, showBackButton, onBack, onOpenMenu, onOpenNotifications, onOpenGroupChat, showQrScanner, onOpenScanner, hasNotifications, tokenBalance, balanceJustUpdated, currentUser, onOpenCart, cartItemCount, showMenu = true }) => {
   return (
     <header className="sticky top-0 z-30 bg-black/80 backdrop-blur-lg border-b border-gray-800 p-4 md:px-8 h-20 flex items-center justify-between relative">
       {/* Left Section */}
@@ -81,9 +82,11 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, showBackButton,
           <BellIcon className="w-6 h-6 text-white" />
           {hasNotifications && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-black"></div>}
         </button>
-        <button onClick={onOpenMenu} className="p-2 rounded-full hover:bg-gray-800 transition-colors" aria-label="Open menu">
-          <MenuIcon className="w-6 h-6 text-white" />
-        </button>
+        {showMenu && (
+            <button onClick={onOpenMenu} className="p-2 rounded-full hover:bg-gray-800 transition-colors" aria-label="Open menu">
+            <MenuIcon className="w-6 h-6 text-white" />
+            </button>
+        )}
       </div>
     </header>
   );

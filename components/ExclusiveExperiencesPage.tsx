@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { Experience, User, Venue } from '../types';
+import { Experience, User, Venue, ExperienceInvitationRequest, Promoter } from '../types';
 import { experiences as allExperiences } from '../data/mockData';
 import { ExperienceCard } from './ExperienceCard';
 import { ExperienceDetailModal } from './modals/ExperienceDetailModal';
@@ -11,9 +11,13 @@ interface ExclusiveExperiencesPageProps {
   onBookExperience: (experience: Experience) => void;
   venueFilter: Venue | null;
   onClearFilter: () => void;
+  experienceRequests: ExperienceInvitationRequest[];
+  onRequestAccess: (experienceId: number) => void;
+  venues: Venue[];
+  onJoinGuestlist: (context: { promoter?: Promoter; venue?: Venue; date?: string }) => void;
 }
 
-export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> = ({ currentUser, onBookExperience, venueFilter, onClearFilter }) => {
+export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> = ({ currentUser, onBookExperience, venueFilter, onClearFilter, experienceRequests, onRequestAccess, venues, onJoinGuestlist }) => {
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
 
   const filteredExperiences = useMemo(() => {
@@ -35,6 +39,11 @@ export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> =
     setSelectedExperience(null);
     onBookExperience(experience);
   };
+  
+  const getInvitationStatus = (experienceId: number) => {
+      const request = experienceRequests.find(r => r.experienceId === experienceId && r.userId === currentUser.id);
+      return request ? request.status : 'none';
+  }
 
   return (
     <>
@@ -68,6 +77,8 @@ export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> =
               currentUser={currentUser}
               onViewDetails={handleViewDetails}
               onBook={onBookExperience}
+              invitationStatus={getInvitationStatus(experience.id)}
+              onRequestAccess={onRequestAccess}
             />
           ))}
         </div>
@@ -78,6 +89,10 @@ export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> =
           currentUser={currentUser}
           onClose={handleCloseModal}
           onBook={handleBookFromModal}
+          invitationStatus={getInvitationStatus(selectedExperience.id)}
+          onRequestAccess={onRequestAccess}
+          venue={venues.find(v => v.id === selectedExperience.venueId)}
+          onJoinGuestlist={onJoinGuestlist}
         />
       )}
     </>

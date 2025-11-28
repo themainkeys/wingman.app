@@ -8,6 +8,8 @@ import { ShareIcon } from './icons/ShareIcon';
 import { BookmarkIcon } from './icons/BookmarkIcon';
 import { RepeatIcon } from './icons/RepeatIcon';
 import { ClockIcon } from './icons/ClockIcon';
+import { LockClosedIcon } from './icons/LockClosedIcon';
+import { KeyIcon } from './icons/KeyIcon';
 
 interface EventCardProps {
   event: Event;
@@ -23,6 +25,9 @@ interface EventCardProps {
   venueCategory?: string;
   venueMusicType?: string;
   guestlistStatus?: 'pending' | 'approved' | 'rejected' | 'none';
+  invitationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  onRequestInvite?: (eventId: number | string) => void;
+  onBook?: (event: Event) => void;
 }
 
 export const EventCard: React.FC<EventCardProps> = ({ 
@@ -38,7 +43,10 @@ export const EventCard: React.FC<EventCardProps> = ({
   onToggleBookmark, 
   venueCategory, 
   venueMusicType,
-  guestlistStatus
+  guestlistStatus,
+  invitationStatus = 'none',
+  onRequestInvite,
+  onBook
 }) => {
   const attendancePercentage = event.capacity && event.currentAttendees ? Math.round((event.currentAttendees / event.capacity) * 100) : null;
 
@@ -68,28 +76,121 @@ export const EventCard: React.FC<EventCardProps> = ({
     }
   };
 
+  const renderActionButton = () => {
+      if (event.type === 'INVITE ONLY') {
+          if (invitationStatus === 'approved') {
+              return (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onBook ? onBook(event) : onRsvp?.(event.id);
+                    }}
+                    className={`flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 ${
+                        isRsvped
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            : 'bg-[#EC4899] text-white hover:bg-[#d8428a]'
+                    }`}
+                >
+                    {isRsvped ? (
+                        <>
+                            <CheckIcon className="w-4 h-4" />
+                            Booked
+                        </>
+                    ) : (
+                        'Book Now'
+                    )}
+                </button>
+              );
+          } else if (invitationStatus === 'pending') {
+              return (
+                <button
+                    disabled
+                    className="flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 bg-gray-700 text-gray-400 cursor-not-allowed"
+                >
+                    <ClockIcon className="w-4 h-4" />
+                    Request Sent
+                </button>
+              );
+          } else if (invitationStatus === 'rejected') {
+               return (
+                <button
+                    disabled
+                    className="flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 bg-red-900/50 text-red-400 cursor-not-allowed"
+                >
+                    Declined
+                </button>
+              );
+          } else {
+              return (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onRequestInvite) {
+                            onRequestInvite(event.id);
+                        } else {
+                            onViewDetails(event);
+                        }
+                    }}
+                    className="flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 bg-purple-600 text-white hover:bg-purple-500"
+                >
+                    <LockClosedIcon className="w-4 h-4" />
+                    Request Invite
+                </button>
+              );
+          }
+      }
+
+      if (onBook) {
+          return (
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onBook(event);
+                }}
+                className="flex-grow bg-[#EC4899] text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 hover:bg-[#d8428a]"
+                aria-label={`Book tickets for ${event.title}`}
+            >
+                <KeyIcon className="w-4 h-4" />
+                Book Tickets
+            </button>
+          );
+      }
+
+      return onRsvp ? (
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                onRsvp(event.id);
+            }}
+            className={`flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 ${
+                isRsvped
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-[#EC4899] text-white hover:bg-[#d8428a]'
+            }`}
+            aria-label={isRsvped ? `Cancel RSVP for ${event.title}` : `RSVP for ${event.title}`}
+        >
+            {isRsvped ? (
+                <>
+                    <CheckIcon className="w-4 h-4" />
+                    RSVPed
+                </>
+            ) : (
+                'RSVP'
+            )}
+        </button>
+      ) : null;
+  };
+
 
   return (
     <div 
       onClick={() => onViewDetails(event)}
-      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-4 flex gap-4 items-center text-left hover:bg-gray-800 transition-colors duration-200 cursor-pointer relative"
+      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-4 flex gap-4 items-center text-left hover:bg-gray-800 transition-colors duration-200 cursor-pointer relative group"
       role="button"
       tabIndex={0}
       onKeyPress={(e) => e.key === 'Enter' && onViewDetails(event)}
       aria-label={`View details for ${event.title}`}
     >
-      {onToggleLike && (
-         <button
-            onClick={(e) => {
-                e.stopPropagation();
-                onToggleLike(event.id);
-            }}
-            className="absolute top-3 right-3 bg-black/50 p-2 rounded-full text-white hover:bg-white/20 transition-colors z-10"
-            aria-label={isLiked ? `Unlike ${event.title}` : `Like ${event.title}`}
-         >
-            <HeartIcon className="w-5 h-5" isFilled={isLiked} />
-         </button>
-      )}
       <img src={event.image} alt={event.title} className="w-24 h-24 sm:w-32 sm:h-32 rounded-md object-cover flex-shrink-0" />
       <div className="flex-grow flex flex-col justify-between self-stretch">
         <div>
@@ -134,52 +235,43 @@ export const EventCard: React.FC<EventCardProps> = ({
               </div>
             </div>
           )}
-          {(onRsvp || onToggleBookmark) && (
-            <div className="flex items-center gap-2">
-                {onRsvp && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onRsvp(event.id);
-                        }}
-                        className={`flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 ${
-                            isRsvped
-                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                : 'bg-[#EC4899] text-white hover:bg-[#d8428a]'
-                        }`}
-                        aria-label={isRsvped ? `Cancel RSVP for ${event.title}` : `RSVP for ${event.title}`}
-                    >
-                        {isRsvped ? (
-                            <>
-                                <CheckIcon className="w-4 h-4" />
-                                RSVPed
-                            </>
-                        ) : (
-                            'RSVP'
-                        )}
-                    </button>
-                )}
-                {onToggleBookmark && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleBookmark(event.id);
-                        }}
-                        className="flex-shrink-0 bg-gray-700 text-gray-300 p-2.5 rounded-lg transition-colors hover:bg-gray-600"
-                        aria-label={isBookmarked ? `Remove ${event.title} from bookmarks` : `Bookmark ${event.title}`}
-                    >
-                        <BookmarkIcon className="w-5 h-5" isFilled={isBookmarked} />
-                    </button>
-                )}
-                <button
-                    onClick={handleShareClick}
-                    className="flex-shrink-0 bg-gray-700 text-gray-300 p-2.5 rounded-lg transition-colors hover:bg-gray-600"
-                    aria-label={`Share ${event.title}`}
-                >
-                    <ShareIcon className="w-5 h-5" />
-                </button>
-            </div>
-           )}
+          <div className="flex items-center gap-2">
+              {renderActionButton()}
+              
+              {onToggleLike && (
+                  <button
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleLike(event.id);
+                      }}
+                      className={`flex-shrink-0 p-2.5 rounded-lg transition-all hover:bg-gray-600 active:scale-95 ${isLiked ? 'bg-pink-500/10 text-[#EC4899] border border-[#EC4899]/30' : 'bg-gray-700 text-gray-300 border border-transparent'}`}
+                      aria-label={isLiked ? `Unlike ${event.title}` : `Like ${event.title}`}
+                  >
+                      <HeartIcon className="w-5 h-5" isFilled={isLiked} />
+                  </button>
+              )}
+
+              {onToggleBookmark && (
+                  <button
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleBookmark(event.id);
+                      }}
+                      className={`flex-shrink-0 p-2.5 rounded-lg transition-all hover:bg-gray-600 active:scale-95 ${isBookmarked ? 'bg-amber-400/10 text-amber-400 border border-amber-400/30' : 'bg-gray-700 text-gray-300 border border-transparent'}`}
+                      aria-label={isBookmarked ? `Remove ${event.title} from bookmarks` : `Bookmark ${event.title}`}
+                  >
+                      <BookmarkIcon className="w-5 h-5" isFilled={isBookmarked} />
+                  </button>
+              )}
+              
+              <button
+                  onClick={handleShareClick}
+                  className="flex-shrink-0 bg-gray-700 text-gray-300 p-2.5 rounded-lg transition-colors hover:bg-gray-600 active:scale-95 border border-transparent"
+                  aria-label={`Share ${event.title}`}
+              >
+                  <ShareIcon className="w-5 h-5" />
+              </button>
+          </div>
         </div>
       </div>
     </div>

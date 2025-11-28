@@ -9,6 +9,7 @@ import { FeaturedVenueCard } from './FeaturedVenueCard';
 import { EventDetailModal } from './modals/EventDetailModal';
 import { SavedVenueCard } from './SavedVenueCard';
 import { EventParticipantsModal } from './modals/EventParticipantsModal';
+import { Modal } from './ui/Modal';
 
 interface EventsCalendarProps {
   onOpenScanner: () => void;
@@ -67,6 +68,7 @@ export const EventsCalendar: React.FC<EventsCalendarProps> = ({
 }) => {
     const [currentDate, setCurrentDate] = useState(new Date('2025-03-01'));
     const [selectedDate, setSelectedDate] = useState<number | null>(null);
+    const [isDayModalOpen, setIsDayModalOpen] = useState(false);
     const [selectedEventForModal, setSelectedEventForModal] = useState<Event | null>(null);
     const [activeTab, setActiveTab] = useState<'calendar' | 'favorites' | 'likes'>('calendar');
     const [participantsForEvent, setParticipantsForEvent] = useState<User[]>([]);
@@ -119,6 +121,7 @@ export const EventsCalendar: React.FC<EventsCalendarProps> = ({
     
     const handleDayClick = (day: number) => {
         setSelectedDate(day);
+        setIsDayModalOpen(true);
     }
 
     const allMonthlyEvents = useMemo(() => {
@@ -207,15 +210,17 @@ export const EventsCalendar: React.FC<EventsCalendarProps> = ({
     }, [selectedDate, eventsByDate]);
 
     const venuesOpenOnSelectedDate = useMemo(() => {
-        const dateToCheck = selectedDate
-            ? new Date(year, currentDate.getMonth(), selectedDate)
-            : new Date(); // Today's date if nothing is selected
-
+        if (!selectedDate) return [];
+        const dateToCheck = new Date(year, currentDate.getMonth(), selectedDate);
         const dayName = dateToCheck.toLocaleString('en-us', { weekday: 'long' });
-
         return venues.filter(venue => venue.operatingDays.includes(dayName));
     }, [selectedDate, currentDate, year]);
 
+    const venuesOpenToday = useMemo(() => {
+        const today = new Date();
+        const dayName = today.toLocaleString('en-us', { weekday: 'long' });
+        return venues.filter(venue => venue.operatingDays.includes(dayName));
+    }, []);
 
     const daysInMonth = new Date(year, currentDate.getMonth() + 1, 0).getDate();
     const firstDayOfMonth = new Date(year, currentDate.getMonth(), 1).getDay();
@@ -300,106 +305,90 @@ export const EventsCalendar: React.FC<EventsCalendarProps> = ({
                 {calendarDays}
             </div>
 
-            <div className="mt-12">
-                {selectedDate ? (
-                    <>
-                        <div className="border-b border-gray-800 pb-4 mb-6 flex justify-between items-center">
-                            <h3 className="text-xl font-bold">
-                                Schedule for {monthName} {selectedDate}
-                            </h3>
-                        </div>
-                        
-                        {filteredEvents.length === 0 && venuesOpenOnSelectedDate.length === 0 ? (
-                            <p className="text-center text-gray-500 py-8">
-                                Nothing scheduled for {monthName} {selectedDate}.
-                            </p>
-                        ) : (
-                            <div className="space-y-8">
-                                {filteredEvents.length > 0 && (
-                                    <div>
-                                        <h4 className="text-lg font-semibold text-gray-300 mb-4">Events</h4>
-                                        <div className="space-y-4">
-                                            {filteredEvents.map(event => {
-                                                const originalId = getOriginalEventId(event.id);
-                                                const venue = venues.find(v => v.id === event.venueId);
-                                                return (
-                                                    <EventCard 
-                                                        key={`${event.id}-${event.date}`}
-                                                        event={event} 
-                                                        onViewDetails={handleOpenEventModal}
-                                                        isRsvped={rsvpedEventIds.includes(originalId)}
-                                                        onRsvp={onRsvp}
-                                                        isLiked={likedEventIds.includes(originalId)}
-                                                        onToggleLike={onToggleLike}
-                                                        venueName={venue?.name}
-                                                        venueLocation={venue?.location}
-                                                        isBookmarked={bookmarkedEventIds.includes(originalId)}
-                                                        onToggleBookmark={onToggleBookmark}
-                                                        venueCategory={venue?.category}
-                                                        venueMusicType={venue?.musicType}
-                                                        guestlistStatus={getGuestlistStatus(event)}
-                                                    />
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                                {venuesOpenOnSelectedDate.length > 0 && (
-                                    <div>
-                                        <h4 className="text-lg font-semibold text-gray-300 mb-4">Open Venues</h4>
-                                        <div className="overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
-                                            <div className="flex space-x-4">
-                                                {venuesOpenOnSelectedDate.map(venue => (
-                                                    <div key={venue.id} className="flex-shrink-0 w-full sm:w-80">
-                                                        <FeaturedVenueCard 
-                                                            venue={venue} 
-                                                            currentUser={currentUser} 
-                                                            onNavigate={onNavigate}
-                                                            onBookVenue={onBookVenue}
-                                                            onViewVenueExperiences={onViewVenueExperiences}
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+            <Modal 
+                isOpen={isDayModalOpen} 
+                onClose={() => setIsDayModalOpen(false)} 
+                title={`Schedule for ${monthName} ${selectedDate}`}
+                className="max-w-2xl"
+            >
+                 {filteredEvents.length === 0 && venuesOpenOnSelectedDate.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">
+                        Nothing scheduled for {monthName} {selectedDate}.
+                    </p>
+                ) : (
+                    <div className="space-y-8">
+                        {filteredEvents.length > 0 && (
+                            <div>
+                                <h4 className="text-lg font-semibold text-gray-300 mb-4">Events</h4>
+                                <div className="space-y-4">
+                                    {filteredEvents.map(event => {
+                                        const originalId = getOriginalEventId(event.id);
+                                        const venue = venues.find(v => v.id === event.venueId);
+                                        return (
+                                            <EventCard 
+                                                key={`${event.id}-${event.date}`}
+                                                event={event} 
+                                                onViewDetails={handleOpenEventModal}
+                                                isRsvped={rsvpedEventIds.includes(originalId)}
+                                                onRsvp={onRsvp}
+                                                isLiked={likedEventIds.includes(originalId)}
+                                                onToggleLike={onToggleLike}
+                                                venueName={venue?.name}
+                                                venueLocation={venue?.location}
+                                                isBookmarked={bookmarkedEventIds.includes(originalId)}
+                                                onToggleBookmark={onToggleBookmark}
+                                                venueCategory={venue?.category}
+                                                venueMusicType={venue?.musicType}
+                                                guestlistStatus={getGuestlistStatus(event)}
+                                            />
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
-                    </>
-                ) : (
-                    <>
-                        <div className="mt-12">
-                            <div className="border-b border-gray-800 pb-4 mb-6">
-                                <h3 className="text-xl font-bold">Events</h3>
-                            </div>
-                            <p className="text-center text-gray-500 py-8">Select a date from the calendar to see what's happening.</p>
-                        </div>
-                        <div className="mt-12">
-                            <div className="border-b border-gray-800 pb-4 mb-6">
-                                <h3 className="text-xl font-bold">Venues Open Today</h3>
-                            </div>
-                            {venuesOpenOnSelectedDate.length > 0 ? (
-                                <div className="overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
-                                    <div className="flex space-x-4">
-                                        {venuesOpenOnSelectedDate.map(venue => (
-                                            <div key={venue.id} className="flex-shrink-0 w-full sm:w-80">
-                                                <FeaturedVenueCard 
-                                                    venue={venue} 
-                                                    currentUser={currentUser} 
-                                                    onNavigate={onNavigate}
-                                                    onBookVenue={onBookVenue}
-                                                    onViewVenueExperiences={onViewVenueExperiences}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
+                        {venuesOpenOnSelectedDate.length > 0 && (
+                            <div>
+                                <h4 className="text-lg font-semibold text-gray-300 mb-4">Open Venues</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {venuesOpenOnSelectedDate.map(venue => (
+                                        <FeaturedVenueCard 
+                                            key={venue.id}
+                                            venue={venue} 
+                                            currentUser={currentUser} 
+                                            onNavigate={onNavigate}
+                                            onBookVenue={onBookVenue}
+                                            onViewVenueExperiences={onViewVenueExperiences}
+                                        />
+                                    ))}
                                 </div>
-                            ) : (
-                                <p className="text-center text-gray-500 py-8">No venues are open today.</p>
-                            )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Modal>
+
+            <div className="mt-12">
+                <div className="border-b border-gray-800 pb-4 mb-6">
+                    <h3 className="text-xl font-bold">Venues Open Today</h3>
+                </div>
+                {venuesOpenToday.length > 0 ? (
+                    <div className="overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
+                        <div className="flex space-x-4">
+                            {venuesOpenToday.map(venue => (
+                                <div key={venue.id} className="flex-shrink-0 w-full sm:w-80">
+                                    <FeaturedVenueCard 
+                                        venue={venue} 
+                                        currentUser={currentUser} 
+                                        onNavigate={onNavigate}
+                                        onBookVenue={onBookVenue}
+                                        onViewVenueExperiences={onViewVenueExperiences}
+                                    />
+                                </div>
+                            ))}
                         </div>
-                    </>
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-8">No venues are open today.</p>
                 )}
             </div>
         </>

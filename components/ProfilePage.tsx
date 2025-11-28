@@ -17,6 +17,7 @@ import { UserPlusIcon } from './icons/UserPlusIcon';
 import { ChartBarIcon } from './icons/ChartBarIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { ChartPieIcon } from './icons/ChartPieIcon';
+import { CreditCardIcon } from './icons/CreditCardIcon'; // Added import
 
 interface ProfilePageProps {
   onNavigate: (page: Page) => void;
@@ -341,6 +342,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                             <button onClick={() => onNavigate('eventChatsList')} className="w-full flex items-center gap-4 p-4 hover:bg-gray-800 transition-colors">
                                 <div className="p-2 bg-gray-800 rounded-full text-indigo-400"><ChatIcon className="w-4 h-4" /></div>
                                 <span className="text-white text-sm font-bold flex-grow text-left">Chats</span>
+                                <ChevronRightIcon className="w-4 h-4 text-gray-600" />
+                            </button>
+                            <button onClick={() => onNavigate('paymentMethods')} className="w-full flex items-center gap-4 p-4 hover:bg-gray-800 transition-colors">
+                                <div className="p-2 bg-gray-800 rounded-full text-green-400"><CreditCardIcon className="w-4 h-4" /></div>
+                                <span className="text-white text-sm font-bold flex-grow text-left">Payment Methods</span>
                                 <ChevronRightIcon className="w-4 h-4 text-gray-600" />
                             </button>
                              <button onClick={() => onNavigate('settings')} className="w-full flex items-center gap-4 p-4 hover:bg-gray-800 transition-colors">

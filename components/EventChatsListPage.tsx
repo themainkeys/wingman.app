@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 // Fix: Imported UserRole to resolve type errors.
 import { Page, User, EventChat, Event, UserAccessLevel, GuestlistChat, Venue, Promoter, UserRole } from '../types';
@@ -18,7 +19,10 @@ export const EventChatsListPage: React.FC<EventChatsListPageProps> = ({ currentU
     const [activeTab, setActiveTab] = useState<'guestlists' | 'events'>('guestlists');
 
     const myEventChats = useMemo(() => eventChats.filter(chat => chat.memberIds.includes(currentUser.id)), [currentUser.id, eventChats]);
-    const myGuestlistChats = useMemo(() => guestlistChats.filter(chat => chat.memberIds.includes(currentUser.id)), [currentUser.id, guestlistChats]);
+    
+    const myGuestlistChats = useMemo(() => {
+        return guestlistChats.filter(chat => chat.memberIds.includes(currentUser.id));
+    }, [currentUser.id, guestlistChats]);
 
     const EventChatList = () => (
         <div className="space-y-4">
@@ -76,7 +80,7 @@ export const EventChatsListPage: React.FC<EventChatsListPageProps> = ({ currentU
         </div>
     );
 
-    const showTabs = currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || currentUser.accessLevel === UserAccessLevel.ACCESS_MALE || currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.PROMOTER;
+    const showTabs = currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.PROMOTER || currentUser.accessLevel === UserAccessLevel.ACCESS_MALE;
 
     if (showTabs) {
         return (

@@ -1,16 +1,23 @@
+
 import React from 'react';
-import { Experience, User, UserRole, UserAccessLevel } from '../../types';
+import { Experience, User, UserRole, UserAccessLevel, Venue, Promoter } from '../../types';
 import { CloseIcon } from '../icons/CloseIcon';
 import { CalendarIcon } from '../icons/CalendarIcon';
 import { LocationMarkerIcon } from '../icons/LocationMarkerIcon';
 import { KeyIcon } from '../icons/KeyIcon';
 import { TokenIcon } from '../icons/TokenIcon';
+import { LockClosedIcon } from '../icons/LockClosedIcon';
+import { UsersIcon } from '../icons/UsersIcon';
 
 interface ExperienceDetailModalProps {
   experience: Experience;
   currentUser: User;
   onClose: () => void;
   onBook: (experience: Experience) => void;
+  invitationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  onRequestAccess?: (experienceId: number) => void;
+  venue?: Venue;
+  onJoinGuestlist?: (context: { promoter?: Promoter; venue?: Venue; date?: string }) => void;
 }
 
 const USD_TO_TMKC_RATE = 100;
@@ -42,10 +49,61 @@ const getPriceForUser = (experience: Experience, user: User): { price?: number; 
 };
 
 
-export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({ experience, currentUser, onClose, onBook }) => {
+export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({ experience, currentUser, onClose, onBook, invitationStatus = 'none', onRequestAccess, venue, onJoinGuestlist }) => {
   const priceDetails = getPriceForUser(experience, currentUser);
   const tokenPrice = priceDetails.price !== undefined && priceDetails.price > 0 ? priceDetails.price * USD_TO_TMKC_RATE : undefined;
   
+  const handleJoinGuestlist = () => {
+      if (onJoinGuestlist && venue) {
+          onJoinGuestlist({ venue });
+      }
+  };
+
+  const renderButton = () => {
+      if (experience.access === 'invite-only') {
+          if (invitationStatus === 'approved') {
+              return (
+                <button
+                    onClick={() => onBook(experience)}
+                    className="w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg bg-amber-400 text-black hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                >
+                    <KeyIcon className="w-5 h-5"/>
+                    Book Now
+                </button>
+              );
+          }
+          if (invitationStatus === 'pending') {
+              return (
+                <button disabled className="w-full font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 text-lg bg-gray-700 text-gray-400 cursor-not-allowed">
+                    <LockClosedIcon className="w-5 h-5"/>
+                    Request Sent
+                </button>
+              );
+          }
+          return (
+            <button
+                onClick={() => onRequestAccess && onRequestAccess(experience.id)}
+                disabled={invitationStatus === 'rejected'}
+                className={`w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg ${invitationStatus === 'rejected' ? 'bg-red-900 text-red-300 cursor-not-allowed' : 'bg-purple-600 text-white hover:bg-purple-500'}`}
+            >
+                <LockClosedIcon className="w-5 h-5"/>
+                {invitationStatus === 'rejected' ? 'Request Rejected' : 'Request Invite'}
+            </button>
+          );
+      }
+      
+      return (
+        <button
+            onClick={() => onBook(experience)}
+            className="w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg bg-amber-400 text-black hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            aria-label={`Book experience: ${experience.title}`}
+        >
+            <KeyIcon className="w-5 h-5"/>
+            Book Now
+        </button>
+      );
+  }
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in"
@@ -117,8 +175,8 @@ export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({ ex
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-800 bg-black/30 rounded-b-xl">
-           <div className="flex items-center justify-between mb-4">
+        <div className="p-6 border-t border-gray-800 bg-black/30 rounded-b-xl space-y-4">
+           <div className="flex items-center justify-between mb-2">
              <p className="text-lg text-gray-300">Price <span className="text-xs">/ {experience.pricing.unit}</span></p>
              <div className="text-right">
                 <p className="text-2xl font-bold text-amber-400">{priceDetails.text}</p>
@@ -130,14 +188,16 @@ export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({ ex
                 )}
              </div>
           </div>
-           <button
-            onClick={() => onBook(experience)}
-            className="w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg bg-amber-400 text-black hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-300"
-            aria-label={`Book experience: ${experience.title}`}
-          >
-            <KeyIcon className="w-5 h-5"/>
-            {experience.access === 'invite-only' ? 'Request Invite' : 'Book Now'}
-          </button>
+          {renderButton()}
+          {venue && onJoinGuestlist && (
+            <button 
+                onClick={handleJoinGuestlist}
+                className="w-full bg-gray-800 text-amber-400 font-bold py-3 px-6 rounded-lg transition-colors hover:bg-gray-700 border border-amber-400/30 flex items-center justify-center gap-2"
+            >
+                <UsersIcon className="w-5 h-5" />
+                Join Guestlist at {venue.name}
+            </button>
+          )}
         </div>
       </div>
     </div>

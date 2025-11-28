@@ -33,10 +33,27 @@ export const AdminEditEventModal: React.FC<AdminEditEventModalProps> = ({ event,
             alert('Please fill out all required fields, including an image.');
             return;
         }
+        
+        // Recurrence Validation
         if (editedEvent.recurrence && (!editedEvent.recurrence.frequency || !editedEvent.recurrence.endDate)) {
             alert('Please provide frequency and end date for recurring events.');
             return;
         }
+
+        // Price Validation
+        if ((editedEvent.priceFemale !== undefined && editedEvent.priceFemale < 0) ||
+            (editedEvent.priceMale !== undefined && editedEvent.priceMale < 0) ||
+            (editedEvent.priceGeneral !== undefined && editedEvent.priceGeneral < 0)) {
+            alert('Prices cannot be negative.');
+            return;
+        }
+
+        // Capacity Validation
+        if (editedEvent.capacity !== undefined && editedEvent.capacity < 0) {
+            alert('Capacity cannot be negative.');
+            return;
+        }
+
         onSave(editedEvent as Event);
     };
 
@@ -185,12 +202,12 @@ export const AdminEditEventModal: React.FC<AdminEditEventModalProps> = ({ event,
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <InputField label="Female Price" type="number" value={String(editedEvent.priceFemale ?? 0)} onChange={e => handleChange('priceFemale', parseFloat(e.target.value))} />
-                        <InputField label="Male Price" type="number" value={String(editedEvent.priceMale ?? 0)} onChange={e => handleChange('priceMale', parseFloat(e.target.value))} />
+                        <InputField label="Female Price" type="number" min="0" value={String(editedEvent.priceFemale ?? 0)} onChange={e => handleChange('priceFemale', parseFloat(e.target.value))} />
+                        <InputField label="Male Price" type="number" min="0" value={String(editedEvent.priceMale ?? 0)} onChange={e => handleChange('priceMale', parseFloat(e.target.value))} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <InputField label="General Price" type="number" value={String(editedEvent.priceGeneral ?? '')} onChange={e => handleChange('priceGeneral', e.target.value ? parseFloat(e.target.value) : undefined)} placeholder="Optional"/>
-                        <InputField label="Capacity" type="number" value={String(editedEvent.capacity ?? '')} onChange={e => handleChange('capacity', e.target.value ? parseInt(e.target.value, 10) : undefined)} placeholder="Optional"/>
+                        <InputField label="General Price" type="number" min="0" value={String(editedEvent.priceGeneral ?? '')} onChange={e => handleChange('priceGeneral', e.target.value ? parseFloat(e.target.value) : undefined)} placeholder="Optional"/>
+                        <InputField label="Capacity" type="number" min="0" value={String(editedEvent.capacity ?? '')} onChange={e => handleChange('capacity', e.target.value ? parseInt(e.target.value, 10) : undefined)} placeholder="Optional"/>
                     </div>
 
                     <div className="border-t border-gray-700 pt-4 mt-4">
@@ -233,7 +250,7 @@ export const AdminEditEventModal: React.FC<AdminEditEventModalProps> = ({ event,
     );
 };
 
-const InputField: React.FC<{ label: string; value: string; onChange: (e: any) => void; type?: string; required?: boolean; placeholder?: string; }> = ({ label, ...props }) => (
+const InputField: React.FC<{ label: string; value: string; onChange: (e: any) => void; type?: string; required?: boolean; placeholder?: string; min?: string; }> = ({ label, ...props }) => (
     <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">{label} {props.required && <span className="text-red-500">*</span>}</label>
         <input className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 focus:ring-amber-400 focus:border-amber-400" {...props} />

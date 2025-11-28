@@ -1,4 +1,5 @@
 
+
 export enum UserRole {
   ADMIN = 'Admin',
   PROMOTER = 'Promoter',
@@ -51,6 +52,7 @@ export interface User {
   referralEarnings?: number;
   referredByPromoterId?: number;
   promoterRatings?: { promoterId: number; rating: number }[];
+  hasProfileReward?: boolean;
 }
 
 export interface UserWithAnalytics extends User {
@@ -210,6 +212,13 @@ export interface EventInvitationRequest {
   id: number;
   userId: number;
   eventId: number;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface ExperienceInvitationRequest {
+  id: number;
+  userId: number;
+  experienceId: number;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -400,6 +409,14 @@ export interface FriendZoneChatMessage {
 }
 // --------------------------------------
 
+export interface GroupJoinRequest {
+  id: number;
+  groupId: number;
+  userId: number;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: number;
+}
+
 export interface VenueReview {
   id: number;
   venueId: number;
@@ -424,6 +441,7 @@ export interface CartItem {
   fullPrice?: number;
   depositPrice?: number;
   paymentOption?: 'deposit' | 'full';
+  paymentMethod?: 'tokens' | 'usd' | 'cashapp';
 
   isPlaceholder?: boolean;
   bookedTimestamp?: number;
@@ -454,6 +472,7 @@ export interface CartItem {
     venue: Venue;
     promoter: Promoter;
     numberOfGuests: number;
+    status?: 'pending' | 'approved' | 'rejected';
   };
 }
 
@@ -485,6 +504,7 @@ export interface PaymentMethod {
     icon?: string;
     isDefault: boolean;
     brand?: 'Visa' | 'Mastercard' | 'Amex' | 'Discover';
+    cardholderName?: string;
 }
 
 export type Page =

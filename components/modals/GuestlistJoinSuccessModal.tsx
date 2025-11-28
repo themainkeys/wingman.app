@@ -2,6 +2,7 @@
 import React from 'react';
 import { CheckCircleIcon } from '../icons/CheckCircleIcon';
 import { StarIcon } from '../icons/StarIcon';
+import { ClockIcon } from '../icons/ClockIcon';
 
 interface GuestlistJoinSuccessModalProps {
   isOpen: boolean;
@@ -25,18 +26,28 @@ export const GuestlistJoinSuccessModal: React.FC<GuestlistJoinSuccessModalProps>
         {isVip ? (
              <StarIcon className="w-20 h-20 text-amber-400 mx-auto mb-4 fill-current" />
         ) : (
-             <CheckCircleIcon className="w-20 h-20 text-green-500 mx-auto mb-4" />
+             <ClockIcon className="w-20 h-20 text-blue-500 mx-auto mb-4" />
         )}
         
-        <h2 className={`text-3xl font-bold mb-2 ${isVip ? 'text-amber-400' : 'text-white'}`}>{isVip ? 'VIP Access Confirmed!' : "You're on the list!"}</h2>
+        <h2 className={`text-3xl font-bold mb-2 ${isVip ? 'text-amber-400' : 'text-white'}`}>{isVip ? 'VIP Access Confirmed!' : "Request Received"}</h2>
         
         <p className="text-gray-400">
-          Your guestlist spot for <span className="font-semibold text-white">{venueName}</span> on <span className="font-semibold text-white">{formattedDate}</span> is confirmed.
+          {isVip ? (
+              <>Your guestlist spot for <span className="font-semibold text-white">{venueName}</span> on <span className="font-semibold text-white">{formattedDate}</span> is confirmed.</>
+          ) : (
+              <>Your request to join the guestlist for <span className="font-semibold text-white">{venueName}</span> on <span className="font-semibold text-white">{formattedDate}</span> has been sent.</>
+          )}
         </p>
         
         {isVip && (
             <p className="text-amber-200/80 text-sm mt-4 font-semibold">
                 You have bypassed standard entry. Please proceed to the VIP line.
+            </p>
+        )}
+        
+        {!isVip && (
+             <p className="text-gray-500 text-sm mt-4">
+                You will receive a notification once the promoter reviews your request.
             </p>
         )}
 

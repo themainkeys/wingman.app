@@ -33,6 +33,7 @@ interface EventTimelineProps {
   onBookVenue: (venue: Venue) => void;
   onJoinGuestlist: (context: { promoter?: Promoter; venue?: Venue, date?: string }) => void;
   guestlistRequests: GuestlistJoinRequest[];
+  onBookEvent: (event: Event) => void;
 }
 
 const EVENTS_PER_PAGE = 4;
@@ -59,7 +60,8 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
     onToggleSubscription,
     onBookVenue,
     onJoinGuestlist,
-    guestlistRequests
+    guestlistRequests,
+    onBookEvent
 }) => {
   const [displayedEvents, setDisplayedEvents] = useState<Event[]>([]);
   const [page, setPage] = useState(1);
@@ -148,6 +150,11 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
       );
       return request ? request.status : 'none';
   };
+  
+  const getInvitationStatus = (event: Event) => {
+      const request = invitationRequests.find(req => req.userId === currentUser.id && req.eventId === getOriginalEventId(event.id));
+      return request ? request.status : 'none';
+  };
 
   const handleOpenEventModal = (event: Event) => {
       const originalId = getOriginalEventId(event.id);
@@ -185,6 +192,9 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
                         venueName={venue?.name}
                         venueLocation={venue?.location}
                         guestlistStatus={getGuestlistStatus(event)}
+                        invitationStatus={getInvitationStatus(event)}
+                        onRequestInvite={() => onRequestInvite(getOriginalEventId(event.id))}
+                        onBook={onBookEvent}
                     />
                 );
             })
@@ -276,6 +286,9 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
                                         venueCategory={venue?.category}
                                         venueMusicType={venue?.musicType}
                                         guestlistStatus={getGuestlistStatus(event)}
+                                        invitationStatus={getInvitationStatus(event)}
+                                        onRequestInvite={() => onRequestInvite(getOriginalEventId(event.id))}
+                                        onBook={onBookEvent}
                                     />
                                 );
                             })}
@@ -333,8 +346,8 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
                         <SavedVenueCard 
                             key={venue.id} 
                             venue={venue} 
-                            onToggleFavorite={() => {}} // Should probably implement unfavorite here or pass handler
-                            onViewDetails={() => onBookVenue(venue)} // Simplified for now
+                            onToggleFavorite={() => {}} 
+                            onViewDetails={() => onBookVenue(venue)} 
                         />
                     ))
                 ) : <p className="text-gray-500 text-center py-8">No favorite venues.</p>}
@@ -362,6 +375,9 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
                                 venueCategory={venue?.category}
                                 venueMusicType={venue?.musicType}
                                 guestlistStatus={getGuestlistStatus(event)}
+                                invitationStatus={getInvitationStatus(event)}
+                                onRequestInvite={() => onRequestInvite(getOriginalEventId(event.id))}
+                                onBook={onBookEvent}
                             />
                         );
                     })
@@ -405,7 +421,6 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
             venues={venues}
             onViewVenueExperiences={(venue) => {
                 handleCloseEventModal();
-                // Navigate to venue details logic here if needed
             }}
             invitationStatus={invitationRequests.find(req => req.userId === currentUser.id && req.eventId === getOriginalEventId(selectedEventForModal.id))?.status || 'none'}
             onRequestInvite={onRequestInvite}
@@ -421,6 +436,8 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({
             isLiked={likedEventIds.includes(getOriginalEventId(selectedEventForModal.id))}
             onToggleLike={onToggleLike}
             onJoinGuestlist={onJoinGuestlist}
+            guestlistStatus={getGuestlistStatus(selectedEventForModal)}
+            onBook={onBookEvent}
         />
       )}
       

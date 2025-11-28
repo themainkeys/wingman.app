@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { HomeIcon } from './icons/HomeIcon';
 import { BookTableIcon } from './icons/BookTableIcon';
 import { SparkleIcon } from './icons/SparkleIcon';
@@ -11,7 +11,6 @@ import { AskGabyIcon } from './icons/AskGabyIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { CloseIcon } from './icons/CloseIcon';
 import { Page, User, UserRole } from '../types';
-import { MicrophoneIcon } from './icons/MicrophoneIcon';
 import { ChartPieIcon } from './icons/ChartPieIcon';
 import { ChatIcon } from './icons/ChatIcon';
 import { FriendsIcon } from './icons/FriendsIcon';
@@ -24,12 +23,12 @@ interface SideMenuProps {
   currentUser: User;
 }
 
-const MenuItem: React.FC<{ icon: React.ReactNode; label: string; isActive?: boolean; isLogout?: boolean; onClick: () => void; }> = ({ icon, label, isActive = false, isLogout = false, onClick }: { icon: React.ReactNode; label: string; isActive?: boolean; isLogout?: boolean; onClick: () => void; }) => (
+const MenuItem: React.FC<{ icon: React.ReactNode; label: string; isActive?: boolean; isLogout?: boolean; onClick: () => void; className?: string }> = ({ icon, label, isActive = false, isLogout = false, onClick, className = '' }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg text-left transition-colors duration-200 ${
       isActive ? 'bg-gray-700 text-white' : isLogout ? 'text-red-500 hover:bg-red-500/10' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-    }`}
+    } ${className}`}
     aria-current={isActive ? 'page' : undefined}
   >
     <div className={isLogout ? 'text-red-500' : 'text-[#50B6FF]'}>
@@ -41,6 +40,7 @@ const MenuItem: React.FC<{ icon: React.ReactNode; label: string; isActive?: bool
 
 
 export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate, currentPage, currentUser }) => {
+  
   const handleNavigation = (page: Page) => {
     onNavigate(page);
     onClose();
@@ -90,8 +90,8 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate,
             {currentUser.role === UserRole.ADMIN && (
                 <MenuItem icon={<ChartPieIcon className="w-5 h-5" />} label="Admin Dashboard" isActive={currentPage === 'adminDashboard'} onClick={() => handleNavigation('adminDashboard')} />
             )}
-            <MenuItem icon={<AskGabyIcon className="w-5 h-5" />} label="Ask Gaby (Text)" isActive={currentPage === 'chatbot'} onClick={() => handleNavigation('chatbot')} />
-            <MenuItem icon={<MicrophoneIcon className="w-5 h-5" />} label="Ask Gaby (Voice)" isActive={currentPage === 'liveChat'} onClick={() => handleNavigation('liveChat')} />
+            
+            <MenuItem icon={<AskGabyIcon className="w-5 h-5" />} label="Ask Gaby" isActive={currentPage === 'chatbot' || currentPage === 'liveChat'} onClick={() => handleNavigation('chatbot')} />
           </nav>
 
           {/* Logout */}

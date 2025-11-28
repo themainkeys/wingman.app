@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Venue, Promoter } from '../types';
 import { CloseIcon } from './icons/CloseIcon';
@@ -47,7 +48,7 @@ export const SelectPromoterModal: React.FC<SelectPromoterModalProps> = ({ isOpen
                 <button 
                   key={promoter.id}
                   onClick={() => onSelectPromoter(promoter)}
-                  className="w-full flex items-center gap-4 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left cursor-pointer"
+                  className="w-full flex items-center gap-4 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left cursor-pointer focus:ring-2 focus:ring-[#EC4899] focus:outline-none"
                   aria-label={`Select promoter ${promoter.name}`}
                 >
                   <img src={promoter.profilePhoto} alt={promoter.name} className="w-14 h-14 rounded-full object-cover" />
@@ -63,7 +64,22 @@ export const SelectPromoterModal: React.FC<SelectPromoterModalProps> = ({ isOpen
               ))}
             </div>
           ) : (
-            <p className="text-center text-gray-500 py-8">No promoters are currently available for this venue. Please check back later.</p>
+            <div className="text-center py-8">
+                <p className="text-gray-400 mb-6">No specific promoters found for this venue.</p>
+                <button 
+                    onClick={() => {
+                        if (promoters.length > 0) {
+                            onSelectPromoter(promoters[0]);
+                        } else {
+                            console.warn("No promoters available for fallback.");
+                        }
+                    }}
+                    disabled={promoters.length === 0}
+                    className="bg-[#EC4899] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#d8428a] transition-colors shadow-lg shadow-pink-500/20 focus:ring-2 focus:ring-white focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Book with General Concierge
+                </button>
+            </div>
           )}
         </div>
       </div>

@@ -78,6 +78,13 @@ export const PromoterProfile: React.FC<PromoterProfileProps> = ({
     setGalleryModalState({ isOpen: false, startIndex: 0 });
   };
 
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const getNextDateForDay = (dayOfWeek: string): string => {
       const dayIndex = WEEKDAYS.indexOf(dayOfWeek);
       if (dayIndex === -1) return new Date().toISOString().split('T')[0];
@@ -272,11 +279,21 @@ export const PromoterProfile: React.FC<PromoterProfileProps> = ({
             )}
          </div>
 
+         {/* Navigation Links */}
+         <div className="sticky top-20 z-10 bg-[var(--color-background)]/95 backdrop-blur-md border-b border-gray-800 py-3 -mx-6 px-6 flex gap-6 overflow-x-auto no-scrollbar">
+            <button onClick={() => scrollToSection('about')} className="text-sm font-bold text-gray-400 hover:text-[#EC4899] transition-colors whitespace-nowrap">About</button>
+            <button onClick={() => scrollToSection('gallery')} className="text-sm font-bold text-gray-400 hover:text-[#EC4899] transition-colors whitespace-nowrap">Gallery</button>
+            {!isOwnProfile && (
+                <button onClick={() => scrollToSection('rating')} className="text-sm font-bold text-gray-400 hover:text-[#EC4899] transition-colors whitespace-nowrap">Rate Experience</button>
+            )}
+            <button onClick={() => scrollToSection('schedule')} className="text-sm font-bold text-gray-400 hover:text-[#EC4899] transition-colors whitespace-nowrap">Weekly Schedule</button>
+         </div>
+
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column: Details, Gallery, Rating/Menu */}
             <div className="lg:col-span-2 space-y-10">
                {/* Section 1: About */}
-               <section>
+               <section id="about" className="scroll-mt-36">
                   <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
                       <span className="w-1 h-6 bg-[#EC4899] rounded-full"></span> About
                   </h2>
@@ -286,7 +303,7 @@ export const PromoterProfile: React.FC<PromoterProfileProps> = ({
                </section>
 
                {/* Section 2: Gallery */}
-               <section>
+               <section id="gallery" className="scroll-mt-36">
                   <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
                       <span className="w-1 h-6 bg-amber-400 rounded-full"></span> Gallery
                   </h2>
@@ -310,7 +327,7 @@ export const PromoterProfile: React.FC<PromoterProfileProps> = ({
 
                {/* Section 3: Rating (Only for non-owners) */}
                {!isOwnProfile && (
-                   <section>
+                   <section id="rating" className="scroll-mt-36">
                       <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
                           <span className="w-1 h-6 bg-purple-500 rounded-full"></span> Rate Experience
                       </h2>
@@ -341,7 +358,7 @@ export const PromoterProfile: React.FC<PromoterProfileProps> = ({
 
             {/* Right Column: Weekly Schedule (Sticky on Desktop) */}
             <div className="space-y-8">
-               <section className="sticky top-24">
+               <section id="schedule" className="sticky top-36 scroll-mt-36">
                   <div className="flex justify-between items-center mb-4">
                       <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                           <span className="w-1 h-6 bg-blue-500 rounded-full"></span> Weekly Schedule

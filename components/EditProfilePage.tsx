@@ -89,6 +89,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
     const [isImprovingBio, setIsImprovingBio] = useState(false);
     const [instagram, setInstagram] = useState(currentUser.instagramHandle || '');
     const [phoneNumber, setPhoneNumber] = useState(currentUser.phoneNumber || '');
+    const [city, setCity] = useState(currentUser.city || '');
     const [selectedMusic, setSelectedMusic] = useState(currentUser.preferences?.music || []);
     const [selectedActivities, setSelectedActivities] = useState(currentUser.preferences?.activities || []);
     const [selectedPersonality, setSelectedPersonality] = useState(currentUser.preferences?.personality || '');
@@ -116,7 +117,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
         if (name.trim()) score++;
         if ((profilePhotoPreview || currentUser.profilePhoto) && !(profilePhotoPreview || currentUser.profilePhoto).includes('seed')) score++;
         if (bio.trim().length > 10) score++;
-        if (currentUser.city) score++; 
+        if (city.trim()) score++; 
         if (instagram.trim()) score++;
         if (phoneNumber.trim()) score++;
         if (dob) score++;
@@ -127,7 +128,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
         if (galleryImages.length >= 3) score++;
 
         return Math.min(100, Math.round((score / totalPoints) * 100));
-    }, [name, profilePhotoPreview, currentUser.profilePhoto, currentUser.city, bio, instagram, phoneNumber, dob, ethnicity, height, build, selectedMusic, selectedActivities, galleryImages]);
+    }, [name, profilePhotoPreview, currentUser.profilePhoto, city, bio, instagram, phoneNumber, dob, ethnicity, height, build, selectedMusic, selectedActivities, galleryImages]);
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
@@ -198,6 +199,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
             ...currentUser,
             name,
             bio,
+            city,
             profilePhoto: profilePhotoPreview || currentUser.profilePhoto,
             instagramHandle: instagram,
             phoneNumber: phoneNumber,
@@ -409,6 +411,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
             <div className="space-y-5">
                 <InfoInput label="Full Name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} required />
                 <TextAreaInput label="About Me" value={bio} onChange={(e) => setBio(e.target.value)} onImprove={handleImproveBio} isImproving={isImprovingBio} error={errors.bio} />
+                <InfoInput label="City" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g., Miami, New York" />
                 <InfoInput label="Instagram Handle" value={instagram} onChange={(e) => setInstagram(e.target.value)} error={errors.instagram} prefix="@" />
                 <InfoInput label="Phone Number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} type="tel" />
                 <InfoInput label="Date of Birth" value={dob} onChange={(e) => setDob(e.target.value)} type="date" error={errors.dob} required />

@@ -1,5 +1,6 @@
 
-import { Venue, Promoter, Booking, Event, Challenge, TableOption, Experience, UserAccessLevel, User, UserRole, Bottle, StoreItem, Transaction, AccessGroup, GroupPost, Itinerary, AppNotification, GuestlistChat, GuestlistChatMessage, PromoterApplication, EventInvitationRequest, EventInvitation, EventChat, EventChatMessage, GuestlistJoinRequest, DataExportRequest, FriendZoneChat, FriendZoneChatMessage } from '../types';
+
+import { Venue, Promoter, Booking, Event, Challenge, TableOption, Experience, UserAccessLevel, User, UserRole, Bottle, StoreItem, Transaction, AccessGroup, GroupPost, Itinerary, AppNotification, GuestlistChat, GuestlistChatMessage, PromoterApplication, EventInvitationRequest, EventInvitation, EventChat, EventChatMessage, GuestlistJoinRequest, DataExportRequest, FriendZoneChat, FriendZoneChatMessage, PaymentMethod } from '../types';
 
 // Mock Users
 export const users: User[] = [
@@ -150,7 +151,14 @@ export const venues: Venue[] = [
 export const bottles: Bottle[] = [
     { id: 'b1', name: 'Grey Goose', price: 350 },
     { id: 'b2', name: 'Dom Perignon', price: 650 },
-    { id: 'b3', name: 'Don Julio 1942', price: 700 }
+    { id: 'b3', name: 'Don Julio 1942', price: 700 },
+    { id: 'b4', name: 'Tito\'s Vodka', price: 300 },
+    { id: 'b5', name: 'Casamigos Blanco', price: 400 },
+    { id: 'b6', name: 'Casamigos Reposado', price: 450 },
+    { id: 'b7', name: 'Hennessy V.S', price: 350 },
+    { id: 'b8', name: 'Moët & Chandon Imperial', price: 250 },
+    { id: 'b9', name: 'Clase Azul Reposado', price: 750 }, // New
+    { id: 'b10', name: 'Ace of Spades Gold', price: 800 }, // New
 ];
 
 // Mock Booking History
@@ -188,15 +196,45 @@ export const itineraries: Itinerary[] = [
 ];
 
 // Mock Events
-// Updated to 2025 for "Upcoming" demo
 export const events: Event[] = [
+    // Upcoming Spring Events 2025
+    { id: 300, title: 'Spring Break Kickoff', description: 'Start the season with a massive pool party at Strawberry Moon. Top DJs and endless vibes.', image: 'https://picsum.photos/seed/springbreak/800/400', date: '2025-03-10', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 50, venueId: 2 },
+    { id: 301, title: 'Miami Music Week Opening', description: 'The official opening party for MMW. Expect surprise guests and cutting-edge electronic music.', image: 'https://picsum.photos/seed/mmwopen/800/400', date: '2025-03-18', type: 'EXCLUSIVE', priceFemale: 40, priceMale: 80, venueId: 1 },
+    { id: 302, title: 'Techno Terrace', description: 'Deep melodic techno on the rooftop. An immersive audio-visual experience.', image: 'https://picsum.photos/seed/techno/800/400', date: '2025-03-19', type: 'EXCLUSIVE', priceFemale: 30, priceMale: 60, venueId: 3 },
+    { id: 303, title: 'Ultra VIP Experience', description: 'Exclusive access to the VIP decks at the main stage. Best view in the house.', image: 'https://picsum.photos/seed/ultra/800/400', date: '2025-03-21', type: 'INVITE ONLY', priceFemale: 0, priceMale: 500, venueId: 1 },
+    { id: 304, title: 'Sunrise Afterhours', description: 'Keep the party going until the sun comes up. The legendary afterparty.', image: 'https://picsum.photos/seed/sunrise/800/400', date: '2025-03-22', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 50, venueId: 2 },
+    { id: 305, title: 'Recovery Brunch', description: 'Detox to retox. Bottomless mimosas and gourmet bites by the water.', image: 'https://picsum.photos/seed/brunch/800/400', date: '2025-03-23', type: 'EXCLUSIVE', priceFemale: 50, priceMale: 50, venueId: 3 },
+    { id: 306, title: 'Calle Ocho VIP Lounge', description: 'Experience the festival from the comfort of a private VIP lounge with open bar.', image: 'https://picsum.photos/seed/calle/800/400', date: '2025-03-25', type: 'INVITE ONLY', priceFemale: 0, priceMale: 150, venueId: 2 },
+    { id: 307, title: 'Rooftop Sunset Sessions', description: 'Chill house beats, golden hour views, and craft cocktails.', image: 'https://picsum.photos/seed/rooftop2/800/400', date: '2025-03-28', type: 'EXCLUSIVE', priceFemale: 0, priceMale: 40, venueId: 3 },
+    { id: 308, title: 'Full Moon Beach Party', description: 'Dancing under the stars on the sand. Fire dancers and tribal beats.', image: 'https://picsum.photos/seed/fullmoon2/800/400', date: '2025-03-30', type: 'EXCLUSIVE', priceFemale: 25, priceMale: 60, venueId: 1 },
+    { id: 309, title: 'Spring Equinox Gala', description: 'A black-tie celebration of the new season. Elegant, refined, and exclusive.', image: 'https://picsum.photos/seed/equinox/800/400', date: '2025-03-31', type: 'INVITE ONLY', priceFemale: 0, priceMale: 250, venueId: 3 },
+
+    // Existing Events
     { id: 202, title: 'Neon Night', description: 'Experience the ultimate glow-in-the-dark party at LIV. High energy beats and vibrant visuals all night long.', image: 'https://picsum.photos/seed/neon/800/400', date: '2025-06-15', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 50, venueId: 1 },
     { id: 204, title: 'Secret Garden', description: 'An intimate, invite-only gathering at Komodo\'s lounge. Sophisticated vibes and curated cocktails.', image: 'https://picsum.photos/seed/garden/800/400', date: '2025-06-20', type: 'INVITE ONLY', priceFemale: 0, priceMale: 100, venueId: 3 },
-    { id: 211, title: 'Summer Splash', description: 'The biggest pool party of the season at Story. Cool off with great music and even better company.', image: 'https://picsum.photos/seed/splash/800/400', date: '2025-07-04', type: 'EXCLUSIVE', priceFemale: 30, priceMale: 60, venueId: 2 }
+    { id: 211, title: 'Summer Splash', description: 'The biggest pool party of the season at Story. Cool off with great music and even better company.', image: 'https://picsum.photos/seed/splash/800/400', date: '2025-07-04', type: 'EXCLUSIVE', priceFemale: 30, priceMale: 60, venueId: 2 },
+    { id: 220, title: 'Full Moon Party', description: 'Celebrate under the moonlight with top DJs.', image: 'https://picsum.photos/seed/fullmoon/800/400', date: '2025-06-25', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 60, venueId: 1 },
+    { id: 221, title: 'Hip Hop Thursdays', description: 'The best hip hop tracks all night long.', image: 'https://picsum.photos/seed/hiphop/800/400', date: '2025-06-26', type: 'EXCLUSIVE', priceFemale: 10, priceMale: 40, venueId: 2 },
+    { id: 222, title: 'Sunday Sunset', description: 'Relaxing vibes and cocktails.', image: 'https://picsum.photos/seed/sunset/800/400', date: '2025-06-29', type: 'INVITE ONLY', priceFemale: 0, priceMale: 80, venueId: 3 },
+    // New Events for testing
+    { id: 230, title: 'Summer Solstice', description: 'Celebrate the longest day of the year with an epic party at LIV.', image: 'https://picsum.photos/seed/solstice/800/400', date: '2025-06-21', type: 'EXCLUSIVE', priceFemale: 30, priceMale: 80, venueId: 1 },
+    { id: 231, title: 'Tech House Sunday', description: 'Deep beats and good vibes at Story.', image: 'https://picsum.photos/seed/techhouse/800/400', date: '2025-06-22', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 50, venueId: 2 },
+    { id: 232, title: 'Ladies Night Special', description: 'Complimentary drinks for ladies until midnight at Komodo.', image: 'https://picsum.photos/seed/ladiesnight/800/400', date: '2025-06-26', type: 'INVITE ONLY', priceFemale: 0, priceMale: 100, venueId: 3 },
+    // Newly added events for diversity
+    { id: 240, title: 'Retro Rewind', description: 'Blast from the past with 80s and 90s hits all night long at Story.', image: 'https://picsum.photos/seed/retro/800/400', date: '2025-07-10', type: 'EXCLUSIVE', priceFemale: 10, priceMale: 30, venueId: 2 },
+    { id: 241, title: 'Elite Gala', description: 'A black-tie affair for the city\'s most distinguished guests at LIV.', image: 'https://picsum.photos/seed/gala/800/400', date: '2025-07-12', type: 'INVITE ONLY', priceFemale: 0, priceMale: 200, venueId: 1 },
+    { id: 242, title: 'Tropical Beats', description: 'Island vibes and cocktails on the terrace at Komodo.', image: 'https://picsum.photos/seed/tropical/800/400', date: '2025-07-15', type: 'EXCLUSIVE', priceFemale: 25, priceMale: 50, venueId: 3 },
+    { id: 243, title: 'Sapphire Lounge Opening', description: 'Grand opening of the new Sapphire VIP section at Story. Dress to impress.', image: 'https://picsum.photos/seed/sapphire/800/400', date: '2025-07-18', type: 'INVITE ONLY', priceFemale: 0, priceMale: 150, venueId: 2 },
+    { id: 244, title: 'Midnight Masquerade', description: 'Mystery and music combine for an unforgettable night at LIV.', image: 'https://picsum.photos/seed/masquerade/800/400', date: '2025-07-20', type: 'EXCLUSIVE', priceFemale: 40, priceMale: 100, venueId: 1 },
+    // NEW EVENTS
+    { id: 250, title: 'Electric Jungle', description: 'Wild beats and immersive decor at LIV. Step into the jungle.', image: 'https://picsum.photos/seed/jungle/800/400', date: '2025-07-25', type: 'EXCLUSIVE', priceFemale: 25, priceMale: 60, venueId: 1 },
+    { id: 251, title: 'Rooftop Rhythms', description: 'Chill house music with a view at Komodo.', image: 'https://picsum.photos/seed/rooftop/800/400', date: '2025-07-26', type: 'INVITE ONLY', priceFemale: 0, priceMale: 80, venueId: 3 },
+    { id: 252, title: 'Bass Drop Friday', description: 'Heavy hitting bass music at Story. Not for the faint of heart.', image: 'https://picsum.photos/seed/bass/800/400', date: '2025-08-01', type: 'EXCLUSIVE', priceFemale: 20, priceMale: 50, venueId: 2 },
+    { id: 253, title: 'White Party', description: 'Annual White Party. Dress code strictly enforced.', image: 'https://picsum.photos/seed/whiteparty/800/400', date: '2025-08-05', type: 'EXCLUSIVE', priceFemale: 50, priceMale: 100, venueId: 1 }
 ];
 
-export const suggestedEvents = [events[0]];
-export const timelineEvents = [events[1], events[2]];
+export const suggestedEvents = [events[0], events[13], events[15]];
+export const timelineEvents = [events[1], events[2], events[14], events[16]];
 
 // Mock Experiences
 export const experiences: Experience[] = [
@@ -295,4 +333,14 @@ export const challenges: Challenge[] = [
 export const storeItems: StoreItem[] = [
     { id: 's1', category: 'Merchandise', title: 'Wingman Cap', description: 'Official cap', image: 'https://picsum.photos/seed/cap/400/400', price: 1000, priceUSD: 25 },
     { id: 's2', category: 'Perk', title: 'Skip the Line Pass', description: 'One time use', image: 'https://picsum.photos/seed/pass/400/400', price: 5000, priceUSD: 100 }
+];
+
+// Mock Payment Methods
+export const mockPaymentMethods: PaymentMethod[] = [
+    { id: '1', category: 'cards', type: 'Visa', last4: '4567', expiry: '03/2026', isDefault: true, cardholderName: 'John Doe' },
+    { id: '2', category: 'cards', type: 'Mastercard', last4: '1234', expiry: '01/2025', isDefault: false, cardholderName: 'John Doe' },
+    { id: '3', category: 'cards', type: 'American Express', last4: '7890', expiry: '05/2027', isDefault: false, cardholderName: 'John Doe' },
+    { id: '4', category: 'other', type: 'PayPal', icon: 'https://picsum.photos/seed/paypal/40/40', isDefault: false },
+    { id: '5', category: 'other', type: 'Cash App', icon: 'https://picsum.photos/seed/cashapp/40/40', isDefault: false },
+    { id: '6', category: 'other', type: 'Crypto Wallet', icon: 'https://picsum.photos/seed/crypto/40/40', isDefault: false },
 ];

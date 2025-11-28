@@ -1,5 +1,6 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
-import { CartItem, Venue, User } from '../types';
+import { CartItem, Venue, User, Page } from '../types';
 import { CartItemCard } from './CartItemCard';
 import { CreditCardIcon } from './icons/CreditCardIcon';
 import { TokenIcon } from './icons/TokenIcon';
@@ -21,11 +22,12 @@ interface CheckoutPageProps {
   onStartChat: (item: CartItem) => void;
   onCancelRsvp: (item: CartItem) => void;
   initialTab?: 'cart' | 'watchlist' | 'purchased';
+  onNavigate: (page: Page) => void;
 }
 
 const USD_TO_TMKC_RATE = 100;
 
-export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchlist, bookedItems, venues, onRemoveItem, onUpdatePaymentOption, onConfirmCheckout, onCompleteBooking, onViewReceipt, userTokenBalance, onStartChat, onCancelRsvp, initialTab = 'cart' }) => {
+export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchlist, bookedItems, venues, onRemoveItem, onUpdatePaymentOption, onConfirmCheckout, onCompleteBooking, onViewReceipt, userTokenBalance, onStartChat, onCancelRsvp, initialTab = 'cart', onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'cart' | 'watchlist' | 'purchased'>(initialTab);
   const [paymentMethod, setPaymentMethod] = useState<'tokens' | 'usd' | 'cashapp'>('usd');
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -197,7 +199,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchli
                             <p className="font-semibold text-white">${totalCostUSD.toFixed(2)}</p>
                         </button>
                     </div>
-                    <button className="w-full mt-4 text-center text-sm font-semibold text-amber-400 hover:underline">
+                    <button 
+                        onClick={() => onNavigate('paymentMethods')}
+                        className="w-full mt-4 text-center text-sm font-semibold text-amber-400 hover:underline"
+                    >
                         Add a new card
                     </button>
                     {!hasEnoughTokens && paymentMethod === 'tokens' && <p className="text-red-400 text-sm mt-2">Insufficient token balance.</p>}

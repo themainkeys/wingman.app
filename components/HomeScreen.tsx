@@ -1,16 +1,17 @@
+
 import React from 'react';
 import { Page, User, UserRole } from '../types';
 import { WingmanLogo } from './icons/WingmanLogo';
-import { MenuIcon } from './icons/MenuIcon';
 import { PromotersIcon } from './icons/PromotersIcon';
 import { BookIcon } from './icons/BookIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { SparkleIcon } from './icons/SparkleIcon';
+import { MenuIcon } from './icons/MenuIcon';
 
 interface HomeScreenProps {
   onNavigate: (page: Page) => void;
   currentUser: User;
-  onOpenMenu: () => void;
+  onOpenMenu?: () => void;
 }
 
 const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; subtitle: string; onClick?: () => void; }> = ({ icon, title, subtitle, onClick }) => (
@@ -43,9 +44,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, currentUser,
                         WINGMAN
                     </h1>
                 </div>
-                <button onClick={onOpenMenu} className="p-2 text-[var(--color-foreground)]" aria-label="Open menu">
-                    <MenuIcon className="w-8 h-8"/>
-                </button>
+                {onOpenMenu && (
+                    <button onClick={onOpenMenu} className="p-2 rounded-full text-white hover:bg-white/10 transition-colors" aria-label="Open menu">
+                        <MenuIcon className="w-8 h-8" />
+                    </button>
+                )}
             </header>
             
             <div className="flex-grow flex flex-col md:justify-center">

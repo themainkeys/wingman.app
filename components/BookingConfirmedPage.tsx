@@ -1,125 +1,149 @@
-import React, { useState } from 'react';
-import { Page, ConfirmedBookingDetails, Experience } from '../types';
+
+import React from 'react';
+import { Page, CartItem } from '../types';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
-import { ChatIcon } from './icons/ChatIcon';
-import { ChevronDownIcon } from './icons/ChevronDownIcon';
+import { ChevronLeftIcon } from './icons/ChevronLeftIcon';
 
 interface BookingConfirmedPageProps {
-    details: ConfirmedBookingDetails;
-    experience?: Experience;
+    items?: CartItem[];
     onNavigate: (page: Page, params?: Record<string, any>) => void;
+    onStartChat?: (item: any) => void;
 }
 
-const DetailRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-    <div className="flex justify-between text-sm">
-        <span className="text-gray-400">{label}:</span>
-        <span className="font-semibold text-right text-white">{value}</span>
-    </div>
-);
+export const BookingConfirmedPage: React.FC<BookingConfirmedPageProps> = ({ items = [], onNavigate }) => {
+    
+    const totalAmount = items.reduce((acc, item) => {
+        const price = item.paymentOption === 'full' ? item.fullPrice : item.depositPrice;
+        return acc + (price || 0);
+    }, 0);
 
-export const BookingConfirmedPage: React.FC<BookingConfirmedPageProps> = ({ details, experience, onNavigate }) => {
-    const { venue, date, tableOption, event, numberOfGuests, promoter, totalPrice, bookingId, guestDetails, experience: bookedExperience } = details;
-    const [isDetailsVisible, setIsDetailsVisible] = useState(false);
-
-    const currentExperience = experience || bookedExperience;
-
-    const qrCodeUrl = bookingId 
-      ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bookingId)}&bgcolor=111827&color=ffffff&qzone=1`
-      : '';
-
-    // Date and time logic
-    let arrivalDate: Date | null = null;
-    let departureDate: Date | null = null;
-    let startTime: string | null = null;
-
-    if (currentExperience && currentExperience.category === 'Stays' && date) {
-        arrivalDate = new Date(date + 'T00:00:00');
-        const durationMatch = currentExperience.duration.match(/(\d+)\s*Night/);
-        if (durationMatch) {
-            const nights = parseInt(durationMatch[1], 10);
-            departureDate = new Date(arrivalDate);
-            departureDate.setDate(arrivalDate.getDate() + nights);
+    const getTransactionId = () => {
+        if (items.length > 0 && items[0].id) {
+            const parts = items[0].id.split('-');
+            if (parts.length > 1) {
+                return parts[1];
+            }
+            return items[0].id;
         }
-    } else if (event) {
-        startTime = "10:00 PM"; // Mock start time
-    } else if (currentExperience) {
-        startTime = "TBD"; // Placeholder for other experiences
-    }
+        return Date.now().toString().slice(-8);
+    };
 
-    const title = event ? event.title : (currentExperience ? currentExperience.title : venue?.name || 'Booking');
+    const transactionId = getTransactionId();
+    const transactionDate = new Date().toLocaleString();
+    
+    const paymentMethod = items.length > 0 && items[0].paymentMethod ? items[0].paymentMethod : 'usd';
+    const isTokenPayment = paymentMethod === 'tokens';
+    const USD_TO_TMKC_RATE = 100;
+    
+    const displayTotal = isTokenPayment 
+        ? `${(totalAmount * USD_TO_TMKC_RATE).toLocaleString()} TMKC` 
+        : `$${totalAmount.toFixed(2)}`;
+
+    const paymentMethodLabel = {
+        tokens: 'TMKC Tokens',
+        usd: 'Credit/Debit Card',
+        cashapp: 'Cash App'
+    }[paymentMethod] || 'Credit/Debit Card';
 
     return (
-        <div className="min-h-[calc(100vh-5rem)] flex flex-col items-center justify-start md:justify-center p-4 md:p-8 pt-8 pb-24 animate-fade-in text-white text-center">
-            <div className="w-full max-w-lg">
-                <CheckCircleIcon className="w-24 h-24 text-green-500 mx-auto mb-4" />
-                <h1 className="text-4xl font-bold mb-2">Booking Confirmed!</h1>
-                <p className="text-gray-400 mb-8">Your spot for <span className="font-semibold text-white">{title}</span> is secured.</p>
-                
-                <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 text-left space-y-4">
-                    {qrCodeUrl && (
-                        <div className="bg-[#1a1a1a] p-4 rounded-lg flex flex-col items-center justify-center mb-4 border border-gray-700">
-                            <img src={qrCodeUrl} alt="Booking QR Code" className="w-48 h-48 rounded-md" />
-                            <p className="text-center text-xs text-gray-500 mt-2">Show this QR code at the entrance.</p>
-                        </div>
-                    )}
+        <div className="min-h-[calc(100vh-5rem)] bg-black text-white flex flex-col animate-fade-in">
+             <div className="p-4">
+                <button 
+                    onClick={() => onNavigate('home')} 
+                    className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-semibold"
+                >
+                    <ChevronLeftIcon className="w-5 h-5"/>
+                    Back to Home
+                </button>
+            </div>
 
-                    {venue && (
-                        <div className="flex justify-between">
-                            <span className="text-gray-400">Venue:</span>
-                            <span className="font-bold">{venue.name}</span>
+            <div className="flex-grow flex flex-col items-center justify-center p-4 pb-24">
+                <div className="w-full max-w-md">
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500/10 rounded-full mb-4 border border-green-500/20">
+                            <CheckCircleIcon className="w-10 h-10 text-green-500" />
                         </div>
-                    )}
-                    
-                    <div className="border-t border-gray-700 my-4"></div>
-
-                    <div className="flex justify-between text-lg">
-                        <span className="text-gray-300 font-semibold">Total Paid:</span>
-                        <span className="font-bold text-amber-400">${totalPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <h1 className="text-3xl font-bold text-white">Payment Successful</h1>
+                        <p className="text-gray-400 mt-2">Your booking is confirmed. Enjoy your night!</p>
                     </div>
 
-                    {/* Collapsible Details Section */}
-                    <div className="border-t border-gray-700 pt-4">
-                        <button onClick={() => setIsDetailsVisible(!isDetailsVisible)} className="w-full flex justify-between items-center text-left">
-                            <span className="font-semibold text-white">View Details</span>
-                            <ChevronDownIcon className={`w-5 h-5 text-gray-400 transition-transform ${isDetailsVisible ? 'rotate-180' : ''}`} />
-                        </button>
-                        {isDetailsVisible && (
-                            <div className="mt-4 space-y-2 animate-fade-in">
-                                {arrivalDate && <DetailRow label="Arrival Date" value={arrivalDate.toLocaleDateString()} />}
-                                {departureDate && <DetailRow label="Departure Date" value={departureDate.toLocaleDateString()} />}
-                                {!arrivalDate && <DetailRow label="Date" value={new Date(date + 'T00:00:00').toLocaleDateString()} />}
-                                {startTime && <DetailRow label="Start Time" value={startTime} />}
-                                <div className="border-t border-gray-800 my-2"></div>
-                                {guestDetails && (
-                                    <>
-                                        <DetailRow label="Booked For" value={guestDetails.name} />
-                                        <DetailRow label="Email" value={guestDetails.email} />
-                                        {guestDetails.phone && <DetailRow label="Phone" value={guestDetails.phone} />}
-                                    </>
-                                )}
-                                <DetailRow label="Guests" value={String(numberOfGuests)} />
-                                {tableOption && <DetailRow label="Table" value={tableOption.name} />}
-                                {promoter && <DetailRow label="Your Wingman" value={promoter.name} />}
+                    {/* Receipt Card */}
+                    <div className="bg-white text-black rounded-lg shadow-2xl overflow-hidden relative">
+                        <div className="bg-gray-100 p-4 border-b border-gray-200 text-center">
+                            <h2 className="font-bold text-lg tracking-widest uppercase text-gray-600">Receipt</h2>
+                            <p className="text-xs text-gray-500 font-mono">{transactionDate}</p>
+                        </div>
+                        
+                        <div className="p-6 bg-white">
+                            <div className="space-y-1 mb-6">
+                                {items.map((item, idx) => {
+                                    const itemPrice = item.paymentOption === 'full' ? item.fullPrice : item.depositPrice;
+                                    const itemDisplayPrice = isTokenPayment 
+                                        ? `${((itemPrice || 0) * USD_TO_TMKC_RATE).toLocaleString()} TMKC`
+                                        : `$${(itemPrice || 0).toFixed(2)}`;
+                                    
+                                    // Helper to safely get subtitle
+                                    let subtitle = '';
+                                    if (item.type === 'table') subtitle = item.tableDetails?.tableOption?.name || 'Table Reservation';
+                                    else if (item.type === 'event') subtitle = 'Event Ticket';
+                                    else if (item.type === 'experience') subtitle = 'Experience Booking';
+                                    else if (item.type === 'guestlist') subtitle = 'Guestlist Entry';
+                                    else if (item.type === 'storeItem') subtitle = item.storeItemDetails?.item.category || 'Store Item';
+
+                                    return (
+                                        <div key={idx} className="flex justify-between items-start border-b border-dashed border-gray-200 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                                            <div className="text-left">
+                                                <p className="font-bold text-sm">{item.name}</p>
+                                                <p className="text-xs text-gray-500">{item.date || item.sortableDate || 'No Date'}</p>
+                                                <p className="text-xs text-gray-500">{subtitle}</p>
+                                                {item.paymentOption === 'deposit' && <span className="text-[10px] font-bold uppercase bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">Deposit</span>}
+                                            </div>
+                                            <p className="font-mono font-semibold text-sm">
+                                                {itemDisplayPrice}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
-                    </div>
-                </div>
 
-                <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                    <button 
-                        onClick={() => onNavigate('checkout', { initialTab: 'purchased' })}
-                        className="w-full sm:w-auto bg-gray-800 text-white font-bold py-3 px-6 rounded-lg"
-                    >
-                        View All Bookings
-                    </button>
-                    <button 
-                        onClick={() => onNavigate('startBookingChat', { details })}
-                        disabled={!promoter && !event}
-                        className="w-full sm:w-auto flex-1 bg-amber-400 text-black font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-600 disabled:cursor-not-allowed"
-                    >
-                        <ChatIcon className="w-5 h-5" />
-                        Chat with your Wingman
-                    </button>
+                            <div className="border-t-2 border-black pt-4 space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Payment Method</span>
+                                    <span className="font-medium">{paymentMethodLabel}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Subtotal</span>
+                                    <span className="font-mono">{displayTotal}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Fees</span>
+                                    <span className="font-mono">{isTokenPayment ? '0 TMKC' : '$0.00'}</span>
+                                </div>
+                                <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t border-gray-200">
+                                    <span>Total</span>
+                                    <span>{displayTotal}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 p-4 border-t border-gray-200 text-center">
+                            <p className="text-xs text-gray-400 font-mono mb-1">Transaction ID: {transactionId}</p>
+                            <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${transactionId}&bgcolor=F9FAFB&color=000000&qzone=0`} 
+                                alt="Transaction QR" 
+                                className="w-24 h-24 mx-auto mix-blend-multiply opacity-80" 
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex gap-4 justify-center">
+                        <button 
+                            onClick={() => onNavigate('bookings')}
+                            className="bg-gray-800 text-white font-bold py-3 px-6 rounded-xl hover:bg-gray-700 transition-colors w-full"
+                        >
+                            View All Bookings
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

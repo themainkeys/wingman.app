@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Page, User, GuestlistChat, Venue, Promoter, UserAccessLevel } from '../types';
 import { users, bookingHistory } from '../data/mockData';
@@ -13,16 +14,8 @@ interface GuestlistChatsPageProps {
 export const GuestlistChatsPage: React.FC<GuestlistChatsPageProps> = ({ currentUser, guestlistChats, venues, promoters, onViewChat }) => {
 
   const myChats = useMemo(() => {
-    if (currentUser.accessLevel === UserAccessLevel.ACCESS_MALE) {
-        const userBookings = bookingHistory.filter(b => b.userId === currentUser.id && b.status === 'Confirmed');
-        const bookedVenueIds = userBookings.map(b => venues.find(v => v.name === b.venueName)?.id).filter((id): id is number => id !== undefined);
-
-        return guestlistChats.filter(chat => 
-            chat.memberIds.includes(currentUser.id) && bookedVenueIds.includes(chat.venueId)
-        );
-    }
     return guestlistChats.filter(chat => chat.memberIds.includes(currentUser.id));
-  }, [currentUser, guestlistChats, venues]);
+  }, [currentUser, guestlistChats]);
 
   return (
     <div className="p-4 md:p-8 animate-fade-in text-white">

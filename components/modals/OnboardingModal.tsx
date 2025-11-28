@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Page, User, Promoter } from '../../types';
 import { HandWavingIcon } from '../icons/HandWavingIcon';
 import { ProfileIcon } from '../icons/ProfileIcon';
@@ -11,6 +11,15 @@ import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 import { PromotersIcon } from '../icons/PromotersIcon';
 import { BookIcon } from '../icons/BookIcon';
 import { StarIcon } from '../icons/StarIcon';
+import { ToggleSwitch } from '../ui/ToggleSwitch';
+import { ImageCropModal } from './ImageCropModal';
+import { CloudArrowUpIcon } from '../icons/CloudArrowUpIcon';
+import { PencilIcon } from '../icons/PencilIcon';
+import { Spinner } from '../icons/Spinner';
+import { UserIcon } from '../icons/UserIcon';
+import { MailIcon } from '../icons/MailIcon';
+import { PhoneIcon } from '../icons/PhoneIcon';
+import { KeyIcon } from '../icons/KeyIcon';
 
 interface OnboardingModalProps {
   user: User;
@@ -18,41 +27,59 @@ interface OnboardingModalProps {
   onNavigate: (page: Page) => void;
   promoters: Promoter[];
   onSelectPromoter: (promoterId: number | null) => void;
+  onUpdateUser?: (user: User) => void;
 }
 
 const ONBOARDING_REWARD = 100;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish, onNavigate, promoters, onSelectPromoter }) => {
+export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish, onNavigate, promoters, onSelectPromoter, onUpdateUser }) => {
     const [currentStep, setCurrentStep] = useState(0);
-    const [notificationStatus, setNotificationStatus] = useState<NotificationPermission>('default');
+    const [isNotificationEnabled, setIsNotificationEnabled] = useState(false);
     const [selectedPromoterId, setSelectedPromoterId] = useState<number | null>(null);
+    
+    // Sign Up State
+    const [signUpData, setSignUpData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        confirmPassword: ''
+    });
+    
+    // Image upload state
+    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if ('Notification' in window) {
-            setNotificationStatus(Notification.permission);
+        if ('Notification' in window && Notification.permission === 'granted') {
+            setIsNotificationEnabled(true);
         }
     }, []);
 
-    const handleRequestNotification = async () => {
-        if ('Notification' in window) {
-            try {
-                const permission = await Notification.requestPermission();
-                setNotificationStatus(permission);
-            } catch (error) {
-                console.error('Error requesting notification permission:', error);
+    const handleToggleNotification = async () => {
+        if (isNotificationEnabled) {
+            setIsNotificationEnabled(false);
+        } else {
+            if ('Notification' in window) {
+                try {
+                    await Notification.requestPermission();
+                    setIsNotificationEnabled(true);
+                } catch (error) {
+                    console.error('Error requesting notification permission:', error);
+                    setIsNotificationEnabled(true);
+                }
+            } else {
+                setIsNotificationEnabled(true);
             }
         }
-    };
-
-    const handleCompleteProfile = () => {
-        onNavigate('editProfile');
-        onFinish(false); // Finish tour so it doesn't reopen, but don't give reward yet
     };
     
     const handlePromoterSelection = (id: number | null) => {
         setSelectedPromoterId(id);
         onSelectPromoter(id);
-        // Auto-advance slightly delayed for better UX if selecting a promoter
         if (id !== null) {
             setTimeout(() => {
                 goToNext();
@@ -60,20 +87,180 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file.');
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            alert(`File size cannot exceed ${MAX_FILE_SIZE_MB}MB.`);
+            return;
+        }
+
+        setIsUploading(true);
+        const reader = new FileReader();
+        reader.onload = () => {
+            setIsUploading(false);
+            if (typeof reader.result === 'string') {
+                setImageToCrop(reader.result);
+            }
+        };
+        reader.onerror = () => {
+            setIsUploading(false);
+            alert('Failed to read file.');
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    const handleCropComplete = (croppedImageUrl: string) => {
+        setImageToCrop(null);
+        if (onUpdateUser) {
+            onUpdateUser({ ...user, profilePhoto: croppedImageUrl });
+        }
+    };
+
+    const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setSignUpData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSignUpSubmit = () => {
+        if (!signUpData.name || !signUpData.email || !signUpData.password) {
+            alert("Please fill in all required fields.");
+            return;
+        }
+        if (signUpData.password !== signUpData.confirmPassword) {
+            alert("Passwords do not match.");
+            return;
+        }
+        
+        if (onUpdateUser) {
+            onUpdateUser({
+                ...user,
+                name: signUpData.name,
+                email: signUpData.email,
+                phoneNumber: signUpData.phone
+            });
+        }
+        goToNext();
+    };
+
     const steps = [
         {
-            icon: <HandWavingIcon className="w-12 h-12 text-[#EC4899]" />,
-            title: `Welcome, ${user.name.split(' ')[0]}!`,
-            description: "You've just unlocked access to Miami's most exclusive nightlife experiences. Let's get you started.",
+            id: 'signup',
+            icon: <SparkleIcon className="w-12 h-12 text-[#EC4899]" />,
+            title: "Create Account",
+            description: "Join Miami's premier nightlife community.",
+            customContent: (
+                <div className="mt-6 w-full max-w-sm mx-auto space-y-4 text-left">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Full Name <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <UserIcon className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <input 
+                                type="text" 
+                                name="name"
+                                value={signUpData.name}
+                                onChange={handleSignUpChange}
+                                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                placeholder="John Doe"
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Email Address <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <MailIcon className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <input 
+                                type="email" 
+                                name="email"
+                                value={signUpData.email}
+                                onChange={handleSignUpChange}
+                                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                placeholder="you@example.com"
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <PhoneIcon className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <input 
+                                type="tel" 
+                                name="phone"
+                                value={signUpData.phone}
+                                onChange={handleSignUpChange}
+                                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                placeholder="+1 (555) 000-0000"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Password <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <KeyIcon className="w-5 h-5 text-gray-500" />
+                                </div>
+                                <input 
+                                    type="password" 
+                                    name="password"
+                                    value={signUpData.password}
+                                    onChange={handleSignUpChange}
+                                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Confirm <span className="text-red-500">*</span></label>
+                            <input 
+                                type="password" 
+                                name="confirmPassword"
+                                value={signUpData.confirmPassword}
+                                onChange={handleSignUpChange}
+                                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    </div>
+                </div>
+            ),
+            action: (
+                <button 
+                    onClick={handleSignUpSubmit} 
+                    className="mt-8 w-full max-w-sm bg-[#EC4899] text-white font-bold py-3 rounded-lg shadow-lg shadow-pink-500/30 hover:scale-105 transition-transform"
+                >
+                    Create Account
+                </button>
+            )
         },
         {
+            id: 'welcome',
+            icon: <HandWavingIcon className="w-12 h-12 text-[#EC4899]" />,
+            title: `Welcome, ${user.name ? user.name.split(' ')[0] : 'Guest'}!`,
+            description: "You've just unlocked access to Miami's most exclusive nightlife experiences. Let's take a quick tour.",
+        },
+        {
+            id: 'promoter',
             icon: <PromotersIcon className="w-12 h-12 text-[#EC4899]" />,
-            title: "Choose Your Wingman",
-            description: "Pick a promoter to guide your nightlife experience. They will be your direct line to exclusive events and tables.",
+            title: "Your Personal Wingman",
+            description: "Connect with elite promoters for direct access to tables and guestlists.",
             customContent: (
-                <div className="mt-6 w-full max-w-4xl mx-auto">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto pr-2">
-                        {promoters.slice(0, 6).map(promoter => (
+                <div className="mt-6 w-full max-w-md mx-auto">
+                    <p className="text-sm text-gray-400 mb-3">Select a promoter to get started (optional)</p>
+                    <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-1">
+                        {promoters.slice(0, 4).map(promoter => (
                             <button
                                 key={promoter.id}
                                 onClick={() => handlePromoterSelection(promoter.id)}
@@ -84,13 +271,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                                 }`}
                             >
                                 <img src={promoter.profilePhoto} alt={promoter.name} className="w-12 h-12 rounded-full object-cover" />
-                                <div>
+                                <div className="flex-grow">
                                     <p className="font-bold text-white text-sm">{promoter.name}</p>
                                     <div className="flex items-center gap-1">
                                         <StarIcon className="w-3 h-3 text-amber-400" />
-                                        <span className="text-xs text-gray-400">{promoter.rating}</span>
+                                        <span className="text-xs text-gray-400">{promoter.rating} • {promoter.city}</span>
                                     </div>
                                 </div>
+                                {selectedPromoterId === promoter.id && <div className="w-4 h-4 bg-[#EC4899] rounded-full"></div>}
                             </button>
                         ))}
                     </div>
@@ -98,53 +286,111 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                         onClick={() => { handlePromoterSelection(null); goToNext(); }}
                         className="mt-4 text-sm text-gray-400 hover:text-white underline"
                     >
-                        I don't have one / Skip for now
+                        Skip for now
                     </button>
                 </div>
             )
         },
         {
+            id: 'profile',
             icon: <ProfileIcon className="w-12 h-12 text-[#EC4899]" />,
             title: "Build Your Profile",
-            description: "A complete profile helps our promoters find the best experiences for you. Add your photos and preferences to stand out.",
-            action: <button onClick={handleCompleteProfile} className="mt-6 bg-white text-black font-bold py-3 px-8 rounded-lg text-lg">Complete Your Profile</button>
+            description: "Complete your profile to get personalized recommendations and faster approvals.",
+            customContent: (
+                <div className="mt-6 flex flex-col items-center gap-4">
+                    <div className="relative group">
+                        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-700 shadow-xl bg-gray-800 relative">
+                            {user.profilePhoto && !user.profilePhoto.includes('seed') ? (
+                                <img src={user.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-500">
+                                    {isUploading ? <Spinner className="w-8 h-8 text-[#EC4899]" /> : <ProfileIcon className="w-16 h-16" />}
+                                </div>
+                            )}
+                            
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                                <PencilIcon className="w-8 h-8 text-white" />
+                            </button>
+                        </div>
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleFileChange} 
+                            className="hidden" 
+                            accept="image/png, image/jpeg" 
+                        />
+                        <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="mt-2 text-sm text-[#EC4899] font-bold hover:underline"
+                        >
+                            {user.profilePhoto && !user.profilePhoto.includes('seed') ? "Change Photo" : "Upload Photo"}
+                        </button>
+                    </div>
+                </div>
+            ),
+            action: (
+                <div
+                    className="mt-6 bg-gray-800/50 border border-gray-700 text-gray-300 font-bold py-3 px-6 rounded-lg text-lg flex items-center justify-center gap-2 mx-auto cursor-default pointer-events-none"
+                >
+                    <TokenIcon className="w-6 h-6 text-[#EC4899]" />
+                    <span>500 TMKC for Setting Up Profile</span>
+                </div>
+            )
         },
         {
+            id: 'discover',
             icon: <SparkleIcon className="w-12 h-12 text-[#EC4899]" />,
             title: "Discover & Connect",
-            description: "Browse elite promoters, book tables at top-tier venues, and get access to invite-only events.",
+            description: "Browse events, book tables, and unlock exclusive experiences curated just for you.",
             visuals: (
-                <div className="flex justify-center gap-8 mt-6">
+                <div className="flex justify-center gap-8 mt-6 opacity-80">
                     <div className="flex flex-col items-center gap-2">
-                        <PromotersIcon className="w-10 h-10 text-white" />
-                        <span className="text-sm font-semibold">Promoters</span>
+                        <div className="p-3 bg-gray-800 rounded-full"><PromotersIcon className="w-6 h-6 text-white" /></div>
+                        <span className="text-xs font-semibold">Promoters</span>
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                        <BookIcon className="w-10 h-10 text-white" />
-                        <span className="text-sm font-semibold">Bookings</span>
+                        <div className="p-3 bg-gray-800 rounded-full"><BookIcon className="w-6 h-6 text-white" /></div>
+                        <span className="text-xs font-semibold">Bookings</span>
+                    </div>
+                     <div className="flex flex-col items-center gap-2">
+                        <div className="p-3 bg-gray-800 rounded-full"><SparkleIcon className="w-6 h-6 text-white" /></div>
+                        <span className="text-xs font-semibold">Events</span>
                     </div>
                 </div>
             )
         },
         {
+            id: 'notifications',
             icon: <BellIcon className="w-12 h-12 text-[#EC4899]" />,
-            title: "Stay in the Loop",
-            description: "Enable notifications for your favorite venues, exclusive events, and new experiences.",
+            title: "Don't Miss Out",
+            description: "Enable notifications to stay updated on your bookings and exclusive invites.",
             action: (
-                <button 
-                    onClick={handleRequestNotification} 
-                    disabled={notificationStatus !== 'default' || !('Notification' in window)} 
-                    className="mt-6 bg-white text-black font-bold py-3 px-8 rounded-lg text-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
-                >
-                    {!('Notification' in window) ? 'Not Supported' : notificationStatus === 'granted' ? 'Enabled!' : notificationStatus === 'denied' ? 'Permission Denied' : 'Enable Notifications'}
-                </button>
+                <div className="mt-6 flex flex-col items-center gap-2 w-full max-w-xs mx-auto">
+                    <div className="flex items-center justify-between w-full bg-gray-900 border border-gray-700 p-4 rounded-xl">
+                        <div className="text-left">
+                            <p className="font-bold text-white text-sm">Push Notifications</p>
+                            <p className="text-xs text-gray-400">
+                                {isNotificationEnabled ? 'Enabled' : 'Disabled'}
+                            </p>
+                        </div>
+                        <ToggleSwitch 
+                            checked={isNotificationEnabled} 
+                            onChange={handleToggleNotification}
+                            label="Enable Notifications"
+                        />
+                    </div>
+                </div>
             )
         },
         {
-            icon: <TokenIcon className="w-12 h-12 text-[#EC4899]" />,
+            id: 'reward',
+            icon: <TokenIcon className="w-16 h-16 text-[#EC4899] animate-bounce" />,
             title: "You're All Set!",
-            description: `As a welcome gift, we've added ${ONBOARDING_REWARD} TMKC tokens to your wallet. Use them in our store for exclusive perks.`,
-            action: <button onClick={() => onFinish(true)} className="mt-6 bg-white text-black font-bold py-3 px-8 rounded-lg text-lg">Let's Go!</button>
+            description: `As a welcome gift, we've added ${ONBOARDING_REWARD} TMKC tokens to your wallet. Enjoy!`,
+            action: <button onClick={() => onFinish(true)} className="mt-8 bg-[#EC4899] text-white font-bold py-3 px-10 rounded-lg text-lg shadow-lg shadow-pink-500/30 hover:scale-105 transition-transform">Start Exploring</button>
         },
     ];
 
@@ -152,40 +398,59 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
     const goToPrev = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
     const activeStep = steps[currentStep];
+    const isSignUpStep = activeStep.id === 'signup';
 
     return (
-        <div className="fixed inset-0 bg-black z-[100] flex flex-col p-6 animate-fade-in text-white" style={{ background: 'linear-gradient(180deg, #1a1a1a 0%, #000000 100%)' }}>
-            <header className="flex-shrink-0">
-                <div className="flex justify-center items-center gap-3">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-black text-white font-sans">
+            {/* Background with subtle gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
+
+            {imageToCrop && (
+                <ImageCropModal 
+                    src={imageToCrop} 
+                    onClose={() => setImageToCrop(null)} 
+                    onCrop={handleCropComplete} 
+                />
+            )}
+
+            <header className="relative flex-shrink-0 p-6 flex justify-between items-center z-10">
+                <div className="flex gap-2">
                     {steps.map((_, index) => (
-                        <div key={index} className={`h-1.5 rounded-full transition-all duration-300 ${index === currentStep ? 'w-8 bg-white' : 'w-3 bg-gray-600'}`} />
+                        <div key={index} className={`h-1.5 rounded-full transition-all duration-300 ${index === currentStep ? 'w-8 bg-[#EC4899]' : 'w-2 bg-gray-700'}`} />
                     ))}
                 </div>
-                <button onClick={() => onFinish(false)} className="absolute top-6 right-6 text-gray-400 font-semibold text-sm hover:text-white">Skip Tour</button>
+                {!isSignUpStep && (
+                    <button onClick={() => onFinish(false)} className="text-gray-400 font-semibold text-sm hover:text-white transition-colors">Skip</button>
+                )}
             </header>
             
-            <main className="flex-grow flex flex-col justify-center text-center -mt-10 overflow-y-auto">
-                <div className="animate-fade-in-up py-8">
-                    <div className="w-24 h-24 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-8 border border-gray-700">
+            <main className="relative flex-grow flex flex-col justify-center items-center text-center p-6 z-10 overflow-y-auto">
+                <div className="w-full max-w-lg animate-fade-in-up">
+                    <div className="w-24 h-24 bg-gray-800/50 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-8 border border-gray-700 shadow-2xl shadow-[#EC4899]/10">
                         {activeStep.icon}
                     </div>
-                    <h1 className="text-4xl font-bold font-poppins">{activeStep.title}</h1>
-                    <p className="text-gray-400 mt-4 max-w-sm mx-auto">{activeStep.description}</p>
+                    <h1 className="text-4xl font-black tracking-tight mb-4">{activeStep.title}</h1>
+                    <p className="text-gray-400 text-lg leading-relaxed mb-6">{activeStep.description}</p>
+                    
                     {activeStep.visuals}
                     {activeStep.customContent}
-                    {activeStep.action}
+                    
+                    <div className="flex justify-center">
+                        {activeStep.action}
+                    </div>
                 </div>
             </main>
 
-            <footer className="flex-shrink-0 flex items-center justify-between pt-4">
-                {currentStep > 0 ? (
-                    <button onClick={goToPrev} className="flex items-center gap-2 text-gray-300 font-semibold p-2">
+            <footer className="relative flex-shrink-0 p-6 flex justify-between items-center z-10 border-t border-gray-900/50">
+                {currentStep > 0 && !isSignUpStep ? (
+                    <button onClick={goToPrev} className="flex items-center gap-2 text-gray-400 font-semibold hover:text-white transition-colors">
                         <ChevronLeftIcon className="w-5 h-5" /> Back
                     </button>
                 ) : <div />}
                 
-                {currentStep < steps.length - 1 && (
-                     <button onClick={goToNext} className="bg-white text-black font-bold py-3 px-6 rounded-lg flex items-center gap-2">
+                {currentStep < steps.length - 1 && !isSignUpStep && (
+                     <button onClick={goToNext} className="flex items-center gap-2 bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors">
                         Next <ChevronRightIcon className="w-5 h-5" />
                     </button>
                 )}

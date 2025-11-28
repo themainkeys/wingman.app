@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Event, Venue, User, UserAccessLevel, UserRole } from '../../types';
 import { CloseIcon } from '../icons/CloseIcon';
@@ -14,6 +15,7 @@ import { RepeatIcon } from '../icons/RepeatIcon';
 import { HeartIcon } from '../icons/HeartIcon';
 import { PlayIcon } from '../icons/PlayIcon';
 import { ShareIcon } from '../icons/ShareIcon';
+import { ClockIcon } from '../icons/ClockIcon';
 
 interface EventDetailModalProps {
   event: Event;
@@ -36,9 +38,17 @@ interface EventDetailModalProps {
   isLiked: boolean;
   onToggleLike: (eventId: number | string) => void;
   onJoinGuestlist: (context: { venue: Venue, date: string }) => void;
+  guestlistStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  onBook?: (event: Event) => void;
 }
 
-export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isRsvped, onRsvp, onClose, venues, onViewVenueExperiences, invitationStatus, onRequestInvite, currentUser, isBookmarked, onToggleBookmark, onPayForEvent, onViewParticipants, onNavigateToChat, isSubscribed, onToggleSubscription, onBookVenue, isLiked, onToggleLike, onJoinGuestlist }) => {
+export const EventDetailModal: React.FC<EventDetailModalProps> = ({ 
+    event, isRsvped, onRsvp, onClose, venues, onViewVenueExperiences, 
+    invitationStatus, onRequestInvite, currentUser, isBookmarked, 
+    onToggleBookmark, onPayForEvent, onViewParticipants, onNavigateToChat, 
+    isSubscribed, onToggleSubscription, onBookVenue, isLiked, onToggleLike, 
+    onJoinGuestlist, guestlistStatus = 'none', onBook
+}) => {
   const [showVideo, setShowVideo] = useState(false);
   const eventDate = new Date(event.date + 'T00:00:00');
   const formattedDate = eventDate.toLocaleDateString('en-US', {
@@ -52,8 +62,6 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isRsv
   const isFemaleUser = currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL;
   
   const originalEventId = typeof event.id === 'string' ? parseInt(event.id.split('-')[0], 10) : event.id;
-
-  const canJoinGuestlist = currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || currentUser.role === UserRole.ADMIN;
 
   const handleShareClick = async () => {
     const shareUrl = `${window.location.origin}?event=${event.id}`;
@@ -99,8 +107,8 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isRsv
                 );
             case 'approved':
                  return (
-                    <button onClick={() => onRsvp(originalEventId)} className={`w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg ${isRsvped ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-green-500 text-white hover:scale-105'}`}>
-                        {isRsvped ? (<><CheckIcon className="w-6 h-6" />Attending</>) : 'Accept Invite'}
+                    <button onClick={() => onBook ? onBook(event) : onRsvp(originalEventId)} className={`w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg ${isRsvped ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-green-500 text-white hover:scale-105'}`}>
+                        {isRsvped ? (<><CheckIcon className="w-6 h-6" />Booked</>) : (onBook ? 'Book Now' : 'Accept Invite')}
                     </button>
                  );
             case 'rejected':
@@ -112,14 +120,27 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isRsv
         }
     }
 
-    // For EXCLUSIVE events, show RSVP button for everyone.
+    if (onBook) {
+        return (
+            <button
+                onClick={() => onBook(event)}
+                className="w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg bg-[#EC4899] text-white hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#EC4899]"
+                aria-label={`Book tickets for ${event.title}`}
+            >
+                <KeyIcon className="w-5 h-5" />
+                Book Tickets
+            </button>
+        );
+    }
+
+    // Fallback for EXCLUSIVE events
     return (
         <button
           onClick={() => onRsvp(originalEventId)}
           className={`w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-lg ${
             isRsvped
               ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              : 'bg-[#EC4899] text-white hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#EC4899]'
+              : 'bg-pink-500 text-white hover:scale-105 focus:outline-none focus:ring-2 focus:ring-pink-400'
           }`}
           aria-label={isRsvped ? `Cancel RSVP for ${event.title}` : `RSVP for ${event.title}`}
         >
@@ -133,6 +154,37 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isRsv
           )}
         </button>
     );
+  };
+
+  const renderGuestlistButton = () => {
+      if (!venue) return null;
+      
+      if (guestlistStatus === 'approved') {
+          return (
+            <div className="w-full bg-green-900/30 border border-green-500/30 text-green-400 font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 mt-3">
+                <CheckIcon className="w-5 h-5" />
+                Guestlist Approved
+            </div>
+          );
+      }
+      if (guestlistStatus === 'pending') {
+          return (
+            <div className="w-full bg-yellow-900/30 border border-yellow-500/30 text-yellow-400 font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 mt-3">
+                <ClockIcon className="w-5 h-5" />
+                Guestlist Request Pending
+            </div>
+          );
+      }
+      
+      return (
+        <button 
+            onClick={() => onJoinGuestlist({ venue, date: event.date })}
+            className="w-full bg-gray-800 text-amber-400 font-bold py-3 px-6 rounded-lg transition-colors hover:bg-gray-700 border border-amber-400/30 mt-3 flex items-center justify-center gap-2"
+        >
+            <UsersIcon className="w-5 h-5" />
+            Join Guestlist at {venue.name}
+        </button>
+      );
   };
 
   const getPriceText = () => {
@@ -250,21 +302,14 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isRsv
                 <p className="text-2xl font-bold text-[#EC4899]">{getPriceText()}</p>
             </div>
             {renderActionButton()}
-            {venue && canJoinGuestlist && (
-                <button 
-                    onClick={() => onJoinGuestlist({ venue, date: event.date })}
-                    className="w-full text-center text-sm font-semibold text-amber-400 hover:text-white hover:underline transition-colors"
-                >
-                    or Join Guestlist
-                </button>
-            )}
-            {venue && !canJoinGuestlist && (
+            {renderGuestlistButton()}
+            {venue && (
               <button
                 onClick={() => {
                   onBookVenue(venue);
                   onClose();
                 }}
-                className="w-full text-center text-sm text-gray-400 hover:text-white hover:underline transition-colors"
+                className="w-full text-center text-sm text-gray-400 hover:text-white hover:underline transition-colors mt-2"
               >
                 or Book a Table at {venue.name}
               </button>

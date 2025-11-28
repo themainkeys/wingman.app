@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Page } from '../types';
 import { ChevronRightIcon } from './icons/ChevronRightIcon';
@@ -6,6 +7,8 @@ import { BellIcon } from './icons/BellIcon';
 import { MoonIcon } from './icons/MoonIcon';
 import { useTheme } from '../contexts/ThemeContext';
 import { ToggleSwitch } from './ui/ToggleSwitch';
+import { ChevronLeftIcon } from './icons/ChevronLeftIcon';
+import { CreditCardIcon } from './icons/CreditCardIcon';
 
 interface SettingsPageProps {
   onNavigate: (page: Page) => void;
@@ -13,20 +16,20 @@ interface SettingsPageProps {
 
 // Reusable component for links
 const SettingsLink: React.FC<{ icon: React.ReactNode, label: string, onClick: () => void }> = ({ icon, label, onClick }) => (
-    <button onClick={onClick} className="w-full flex items-center gap-4 p-4 bg-[var(--color-card)] rounded-lg hover:bg-[var(--color-input)] transition-colors duration-200">
-        <div className="text-[var(--color-accent)]">{icon}</div>
-        <span className="font-semibold text-[var(--color-card-foreground)] flex-grow text-left">{label}</span>
-        <ChevronRightIcon className="w-5 h-5 text-[var(--color-text-muted)]" />
+    <button onClick={onClick} className="w-full flex items-center gap-4 p-4 bg-gray-900 border border-gray-800 rounded-lg hover:bg-gray-800 transition-colors duration-200">
+        <div className="text-amber-400">{icon}</div>
+        <span className="font-semibold text-white flex-grow text-left">{label}</span>
+        <ChevronRightIcon className="w-5 h-5 text-gray-500" />
     </button>
 );
 
 // Reusable component for rows with toggles
 const SettingsToggle: React.FC<{ icon: React.ReactNode, label: string, description: string, isEnabled: boolean, onToggle: () => void }> = ({ icon, label, description, isEnabled, onToggle }) => (
-    <div className="w-full flex items-center gap-4 p-4 bg-[var(--color-card)] rounded-lg">
-        <div className="text-[var(--color-accent)]">{icon}</div>
+    <div className="w-full flex items-center gap-4 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+        <div className="text-amber-400">{icon}</div>
         <div className="flex-grow">
-            <span className="font-semibold text-[var(--color-card-foreground)]">{label}</span>
-            <p className="text-sm text-[var(--color-text-muted)]">{description}</p>
+            <span className="font-semibold text-white">{label}</span>
+            <p className="text-sm text-gray-400">{description}</p>
         </div>
         <ToggleSwitch checked={isEnabled} onChange={onToggle} label={label} />
     </div>
@@ -34,7 +37,7 @@ const SettingsToggle: React.FC<{ icon: React.ReactNode, label: string, descripti
 
 // Reusable component for section headers
 const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
-    <h2 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider px-1 mt-8 mb-3">{title}</h2>
+    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-1 mt-8 mb-3">{title}</h2>
 );
 
 
@@ -43,12 +46,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const isDarkMode = theme === 'dark';
 
   return (
-    <div className="p-4 md:p-8 animate-fade-in">
+    <div className="p-4 md:p-8 animate-fade-in text-white pb-24">
+      <button 
+            onClick={() => onNavigate('userProfile')} 
+            className="inline-flex items-center gap-2 text-gray-300 hover:text-white transition-colors mb-6 text-sm font-semibold"
+        >
+            <ChevronLeftIcon className="w-5 h-5"/>
+            Back to Profile
+      </button>
+
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+
       <SectionHeader title="General" />
       <div className="space-y-3">
         <SettingsLink icon={<ShieldIcon className="w-6 h-6" />} label="Security" onClick={() => onNavigate('security')} />
         <SettingsLink icon={<EyeIcon className="w-6 h-6" />} label="Privacy" onClick={() => onNavigate('privacy')} />
         <SettingsLink icon={<BellIcon className="w-6 h-6" />} label="Notifications" onClick={() => onNavigate('notificationsSettings')} />
+      </div>
+
+      <SectionHeader title="Payments" />
+      <div className="space-y-3">
+        <SettingsLink icon={<CreditCardIcon className="w-6 h-6" />} label="Manage Payment Methods" onClick={() => onNavigate('paymentMethods')} />
       </div>
 
       <SectionHeader title="Appearance" />
