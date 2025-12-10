@@ -80,7 +80,7 @@ export const EventChatsListPage: React.FC<EventChatsListPageProps> = ({ currentU
         </div>
     );
 
-    const showTabs = currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.PROMOTER || currentUser.accessLevel === UserAccessLevel.ACCESS_MALE;
+    const showTabs = currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL || currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.PROMOTER;
 
     if (showTabs) {
         return (
@@ -98,7 +98,7 @@ export const EventChatsListPage: React.FC<EventChatsListPageProps> = ({ currentU
         );
     }
 
-    // Default view for general users who might only have event chats
+    // Default view for general users (and now Access Male) who might only have event chats
     return (
         <div className="p-4 md:p-8 animate-fade-in text-white">
             <EventChatList />

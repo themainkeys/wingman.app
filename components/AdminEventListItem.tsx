@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Event } from '../types';
 import { PencilSquareIcon } from './icons/PencilSquareIcon';
@@ -10,11 +11,23 @@ interface AdminEventListItemProps {
     onEdit: (event: Event) => void;
     onDelete: (event: Event) => void;
     onPreview: (event: Event) => void;
+    isSelected?: boolean;
+    onToggleSelect?: (eventId: number | string) => void;
 }
 
-export const AdminEventListItem: React.FC<AdminEventListItemProps> = ({ event, venueName, onEdit, onDelete, onPreview }) => {
+export const AdminEventListItem: React.FC<AdminEventListItemProps> = ({ event, venueName, onEdit, onDelete, onPreview, isSelected, onToggleSelect }) => {
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-4">
+        <div className={`bg-gray-900 border ${isSelected ? 'border-[#EC4899] bg-gray-800/50' : 'border-gray-800'} rounded-lg p-4 flex items-center gap-4 transition-colors`}>
+            {onToggleSelect && (
+                <div className="flex-shrink-0">
+                    <input 
+                        type="checkbox" 
+                        checked={isSelected} 
+                        onChange={() => onToggleSelect(event.id)}
+                        className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-[#EC4899] focus:ring-[#EC4899] cursor-pointer"
+                    />
+                </div>
+            )}
             <img className="w-20 h-20 rounded-lg object-cover" src={event.image} alt={event.title} />
             <div className="flex-grow grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <div>

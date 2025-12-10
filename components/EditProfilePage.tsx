@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Page, User } from '../types';
@@ -88,6 +90,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
     const [bio, setBio] = useState(currentUser.bio || '');
     const [isImprovingBio, setIsImprovingBio] = useState(false);
     const [instagram, setInstagram] = useState(currentUser.instagramHandle || '');
+    const [tiktok, setTikTok] = useState(currentUser.tiktokHandle || '');
     const [phoneNumber, setPhoneNumber] = useState(currentUser.phoneNumber || '');
     const [city, setCity] = useState(currentUser.city || '');
     const [selectedMusic, setSelectedMusic] = useState(currentUser.preferences?.music || []);
@@ -118,7 +121,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
         if ((profilePhotoPreview || currentUser.profilePhoto) && !(profilePhotoPreview || currentUser.profilePhoto).includes('seed')) score++;
         if (bio.trim().length > 10) score++;
         if (city.trim()) score++; 
-        if (instagram.trim()) score++;
+        if (instagram.trim() || tiktok.trim()) score++;
         if (phoneNumber.trim()) score++;
         if (dob) score++;
         if (ethnicity) score++;
@@ -128,7 +131,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
         if (galleryImages.length >= 3) score++;
 
         return Math.min(100, Math.round((score / totalPoints) * 100));
-    }, [name, profilePhotoPreview, currentUser.profilePhoto, city, bio, instagram, phoneNumber, dob, ethnicity, height, build, selectedMusic, selectedActivities, galleryImages]);
+    }, [name, profilePhotoPreview, currentUser.profilePhoto, city, bio, instagram, tiktok, phoneNumber, dob, ethnicity, height, build, selectedMusic, selectedActivities, galleryImages]);
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
@@ -147,6 +150,9 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
         }
         if (instagram && !/^[a-zA-Z0-9._]+$/.test(instagram)) {
             newErrors.instagram = "Invalid Instagram handle format.";
+        }
+        if (tiktok && !/^[a-zA-Z0-9._]+$/.test(tiktok)) {
+            newErrors.tiktok = "Invalid TikTok handle format.";
         }
         if (galleryImages.length < 3) {
             newErrors.galleryImages = 'A minimum of 3 images is required for better visibility.';
@@ -202,6 +208,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
             city,
             profilePhoto: profilePhotoPreview || currentUser.profilePhoto,
             instagramHandle: instagram,
+            tiktokHandle: tiktok,
             phoneNumber: phoneNumber,
             dob,
             ethnicity,
@@ -412,7 +419,10 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
                 <InfoInput label="Full Name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} required />
                 <TextAreaInput label="About Me" value={bio} onChange={(e) => setBio(e.target.value)} onImprove={handleImproveBio} isImproving={isImprovingBio} error={errors.bio} />
                 <InfoInput label="City" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g., Miami, New York" />
-                <InfoInput label="Instagram Handle" value={instagram} onChange={(e) => setInstagram(e.target.value)} error={errors.instagram} prefix="@" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InfoInput label="Instagram Handle" value={instagram} onChange={(e) => setInstagram(e.target.value)} error={errors.instagram} prefix="@" />
+                    <InfoInput label="TikTok Handle" value={tiktok} onChange={(e) => setTikTok(e.target.value)} error={errors.tiktok} prefix="@" />
+                </div>
                 <InfoInput label="Phone Number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} type="tel" />
                 <InfoInput label="Date of Birth" value={dob} onChange={(e) => setDob(e.target.value)} type="date" error={errors.dob} required />
                  <div>

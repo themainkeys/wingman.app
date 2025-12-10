@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+
+import React, { useMemo, useState } from 'react';
 import { Venue, User, Promoter, UserAccessLevel, GuestlistJoinRequest } from '../types';
 import { HeartIcon } from './icons/HeartIcon';
 import { SparkleIcon } from './icons/SparkleIcon';
 import { StarIcon } from './icons/StarIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
+import { FavoriteConfirmationModal } from './modals/FavoriteConfirmationModal';
 
 interface VenueCardProps {
   venue: Venue;
@@ -30,9 +32,20 @@ export const VenueCard: React.FC<VenueCardProps> = ({
     onJoinGuestlist,
     guestlistJoinRequests
 }) => {
+  const [isFavoriteModalOpen, setIsFavoriteModalOpen] = useState(false);
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isFavorite) {
+        setIsFavoriteModalOpen(true);
+    } else {
+        onToggleFavorite(venue.id);
+    }
+  };
+
+  const confirmFavorite = () => {
     onToggleFavorite(venue.id);
+    setIsFavoriteModalOpen(false);
   };
 
   const handleBookClick = (e: React.MouseEvent) => {
@@ -87,6 +100,7 @@ export const VenueCard: React.FC<VenueCardProps> = ({
   };
   
   return (
+    <>
     <div 
         onClick={() => onViewDetails(venue)}
         className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden transition-all duration-300 hover:border-[#EC4899] hover:shadow-2xl hover:shadow-[#EC4899]/10 group cursor-pointer"
@@ -160,5 +174,14 @@ export const VenueCard: React.FC<VenueCardProps> = ({
         </div>
       </div>
     </div>
+    <FavoriteConfirmationModal 
+        isOpen={isFavoriteModalOpen}
+        onClose={() => setIsFavoriteModalOpen(false)}
+        onConfirm={confirmFavorite}
+        entityName={venue.name}
+        entityType="Venue"
+        action={isFavorite ? 'remove' : 'add'}
+    />
+    </>
   );
 };

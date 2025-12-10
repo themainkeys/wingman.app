@@ -11,12 +11,13 @@ import { CurrencyDollarIcon } from './icons/CurrencyDollarIcon';
 interface CheckoutPageProps {
   currentUser: User;
   watchlist: CartItem[];
+  cartItems?: CartItem[];
   bookedItems: CartItem[];
   venues: Venue[];
   onRemoveItem: (itemId: string) => void;
   onUpdatePaymentOption: (itemId: string, option: 'deposit' | 'full') => void;
   onConfirmCheckout: (paymentMethod: 'tokens' | 'usd' | 'cashapp', itemIds: string[]) => void;
-  onCompleteBooking: (item: CartItem) => void;
+  onMoveToCart: (item: CartItem) => void;
   onViewReceipt: (item: CartItem) => void;
   userTokenBalance: number;
   onStartChat: (item: CartItem) => void;
@@ -27,7 +28,7 @@ interface CheckoutPageProps {
 
 const USD_TO_TMKC_RATE = 100;
 
-export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchlist, bookedItems, venues, onRemoveItem, onUpdatePaymentOption, onConfirmCheckout, onCompleteBooking, onViewReceipt, userTokenBalance, onStartChat, onCancelRsvp, initialTab = 'cart', onNavigate }) => {
+export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchlist, cartItems = [], bookedItems, venues, onRemoveItem, onUpdatePaymentOption, onConfirmCheckout, onMoveToCart, onViewReceipt, userTokenBalance, onStartChat, onCancelRsvp, initialTab = 'cart', onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'cart' | 'watchlist' | 'purchased'>(initialTab);
   const [paymentMethod, setPaymentMethod] = useState<'tokens' | 'usd' | 'cashapp'>('usd');
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -38,12 +39,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchli
     }
   }, [initialTab]);
 
-  const sortedWatchlist = useMemo(() => {
+  const watchlistItems = useMemo(() => {
     return [...watchlist].sort((a, b) => new Date(a.sortableDate || 0).getTime() - new Date(b.sortableDate || 0).getTime());
   }, [watchlist]);
-  
-  const cartItems = useMemo(() => sortedWatchlist.filter(item => !item.isPlaceholder), [sortedWatchlist]);
-  const watchlistItems = useMemo(() => sortedWatchlist.filter(item => item.isPlaceholder), [sortedWatchlist]);
 
   useEffect(() => {
     if (activeTab === 'cart') {
@@ -142,7 +140,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchli
                     venues={venues}
                     onRemove={onRemoveItem}
                     onUpdatePaymentOption={onUpdatePaymentOption}
-                    onCompleteBooking={onCompleteBooking}
+                    onMoveToCart={onMoveToCart}
                     isSelected={selectedItemIds.includes(item.id)}
                     onToggleSelection={handleToggleItemSelection}
                   />
@@ -222,7 +220,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ currentUser, watchli
                                 venues={venues}
                                 onRemove={onRemoveItem}
                                 onUpdatePaymentOption={onUpdatePaymentOption}
-                                onCompleteBooking={onCompleteBooking}
+                                onMoveToCart={onMoveToCart}
                             />
                         ))}
                     </div>

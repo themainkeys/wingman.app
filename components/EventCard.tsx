@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Event } from '../types';
 import { UsersIcon } from './icons/UsersIcon';
 import { HeartIcon } from './icons/HeartIcon';
@@ -10,6 +10,7 @@ import { RepeatIcon } from './icons/RepeatIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { KeyIcon } from './icons/KeyIcon';
+import { ConfirmationModal } from './modals/ConfirmationModal';
 
 interface EventCardProps {
   event: Event;
@@ -48,6 +49,9 @@ export const EventCard: React.FC<EventCardProps> = ({
   onRequestInvite,
   onBook
 }) => {
+  const [isCopied, setIsCopied] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+
   const attendancePercentage = event.capacity && event.currentAttendees ? Math.round((event.currentAttendees / event.capacity) * 100) : null;
 
   const handleShareClick = async (e: React.MouseEvent) => {
@@ -68,12 +72,29 @@ export const EventCard: React.FC<EventCardProps> = ({
     } else {
         try {
             await navigator.clipboard.writeText(shareUrl);
-            alert('Event link copied to clipboard!');
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy: ', err);
             alert('Sharing is not supported on this browser. Could not copy link.');
         }
     }
+  };
+
+  const handleRsvpClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (isRsvped) {
+          setIsCancelModalOpen(true);
+      } else if (onRsvp) {
+          onRsvp(event.id);
+      }
+  };
+
+  const handleConfirmCancel = () => {
+      if (onRsvp) {
+          onRsvp(event.id);
+      }
+      setIsCancelModalOpen(false);
   };
 
   const renderActionButton = () => {
@@ -82,8 +103,12 @@ export const EventCard: React.FC<EventCardProps> = ({
               return (
                 <button
                     onClick={(e) => {
-                        e.stopPropagation();
-                        onBook ? onBook(event) : onRsvp?.(event.id);
+                        if (onBook) {
+                            e.stopPropagation();
+                            onBook(event);
+                        } else {
+                            handleRsvpClick(e);
+                        }
                     }}
                     className={`flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 ${
                         isRsvped
@@ -158,10 +183,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
       return onRsvp ? (
         <button
-            onClick={(e) => {
-                e.stopPropagation();
-                onRsvp(event.id);
-            }}
+            onClick={handleRsvpClick}
             className={`flex-grow font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 ${
                 isRsvped
                     ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -183,6 +205,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
 
   return (
+    <>
     <div 
       onClick={() => onViewDetails(event)}
       className="w-full bg-gray-900 border border-gray-800 rounded-lg p-4 flex gap-4 items-center text-left hover:bg-gray-800 transition-colors duration-200 cursor-pointer relative group"
@@ -269,11 +292,21 @@ export const EventCard: React.FC<EventCardProps> = ({
                   className="flex-shrink-0 bg-gray-700 text-gray-300 p-2.5 rounded-lg transition-colors hover:bg-gray-600 active:scale-95 border border-transparent"
                   aria-label={`Share ${event.title}`}
               >
-                  <ShareIcon className="w-5 h-5" />
+                  {isCopied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <ShareIcon className="w-5 h-5" />}
               </button>
           </div>
         </div>
       </div>
     </div>
+    <ConfirmationModal 
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        onConfirm={handleConfirmCancel}
+        title="Cancel RSVP"
+        message="Are you sure you want to cancel your RSVP for this event?"
+        confirmText="Yes, cancel"
+        confirmVariant="danger"
+    />
+    </>
   );
 };

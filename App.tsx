@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Page, Promoter, Venue, Event, CartItem, AccessGroup, Itinerary, FriendZoneChat, AppNotification, UserRole, UserAccessLevel, Experience, GuestlistJoinRequest, EventInvitation, PromoterApplication, ExperienceInvitationRequest, GroupJoinRequest, PaymentMethod, StoreItem, EventInvitationRequest } from './types';
+import { User, Page, Promoter, Venue, Event, CartItem, AccessGroup, Itinerary, FriendZoneChat, AppNotification, UserRole, UserAccessLevel, Experience, GuestlistJoinRequest, EventInvitation, PromoterApplication, ExperienceInvitationRequest, GroupJoinRequest, PaymentMethod, StoreItem, EventInvitationRequest as EventInvitationReq, FriendZoneChatMessage, Challenge, GuestlistChat, EventChat, GuestlistChatMessage, EventChatMessage } from './types';
 import { users, promoters, venues, events, experiences, challenges, storeItems, accessGroups, itineraries, mockNotifications, mockFriendZoneChats, mockGuestlistChats, mockEventChats, mockEventChatMessages, mockGuestlistChatMessages, mockFriendZoneChatMessages, mockInvitationRequests, mockEventInvitations, mockGuestlistJoinRequests, mockPromoterApplications, mockDataExportRequests, mockPaymentMethods } from './data/mockData';
 
 // Component Imports
@@ -47,9 +48,6 @@ import { CookieSettingsPage } from './components/CookieSettingsPage';
 import { DataExportPage } from './components/DataExportPage';
 import { TokenWalletPage } from './components/TokenWalletPage';
 import { EditProfilePage } from './components/EditProfilePage';
-import { NftGalleryPage } from './components/NftGalleryPage';
-import { ConnectWalletPage } from './components/ConnectWalletPage';
-import { VenueReviewsPage } from './components/VenueReviewsPage';
 import { ReferFriendPage } from './components/ReferFriendPage';
 
 // Layout & Modals
@@ -99,6 +97,10 @@ const calculateProfileCompleteness = (user: User): number => {
     return Math.min(100, Math.round((score / totalPoints) * 100));
 };
 
+const getOriginalEventId = (eventId: number | string) => {
+    return typeof eventId === 'string' ? parseInt(eventId.split('-')[0], 10) : eventId;
+};
+
 type ModalState = 
   | { type: 'booking'; promoter: Promoter; venue?: Venue; date?: string }
   | { type: 'experienceBooking'; experience: Experience }
@@ -143,6 +145,14 @@ export const App: React.FC = () => {
         }
     });
     const [appStoreItems, setAppStoreItems] = useState<StoreItem[]>(storeItems);
+    const [appChallenges, setAppChallenges] = useState<Challenge[]>(() => {
+        try {
+            const saved = localStorage.getItem('wingman_challenges');
+            return saved ? JSON.parse(saved) : challenges;
+        } catch (e) {
+            return challenges;
+        }
+    });
     
     // State
     const [currentUser, setCurrentUser] = useState<User>(() => {
@@ -161,6 +171,26 @@ export const App: React.FC = () => {
         }
     });
 
+    // Real Admin Session State (for "Switch Account" feature)
+    const [realAdminUser, setRealAdminUser] = useState<User | null>(() => {
+        try {
+            const savedId = localStorage.getItem('wingman_realAdminUserId');
+            if (savedId) {
+                // Find user in current appUsers
+                // Note: appUsers isn't fully initialized here in the callback scope if we reference the state directly,
+                // but we can try reading from localStorage again or use the imported default.
+                // For safety in this closure, we'll fetch from storage again.
+                const storedUsers = localStorage.getItem('wingman_users');
+                const allUsers = storedUsers ? JSON.parse(storedUsers) : users;
+                const found = allUsers.find((u: User) => u.id === parseInt(savedId, 10));
+                if (found && found.role === UserRole.ADMIN) return found;
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    });
+
     const [currentPage, setCurrentPage] = useState<Page>('home');
     const [pageParams, setPageParams] = useState<any>({});
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -169,6 +199,7 @@ export const App: React.FC = () => {
     const [activeModal, setActiveModal] = useState<ModalState>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [onboardingReward, setOnboardingReward] = useState<number | null>(null);
+    const [showNotificationsPrompt, setShowNotificationsPrompt] = useState(false);
     
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [bookedItems, setBookedItems] = useState<CartItem[]>([]);
@@ -183,8 +214,15 @@ export const App: React.FC = () => {
     const [invitationRequests, setInvitationRequests] = useState(mockInvitationRequests);
     const [experienceInvitationRequests, setExperienceInvitationRequests] = useState<ExperienceInvitationRequest[]>([]);
     const [friendZoneChats, setFriendZoneChats] = useState<FriendZoneChat[]>(mockFriendZoneChats);
+    const [friendZoneChatMessages, setFriendZoneChatMessages] = useState<FriendZoneChatMessage[]>(mockFriendZoneChatMessages);
     const [groupJoinRequests, setGroupJoinRequests] = useState<GroupJoinRequest[]>([]);
     const [promoterApplications, setPromoterApplications] = useState(mockPromoterApplications);
+
+    // Chat State
+    const [guestlistChats, setGuestlistChats] = useState<GuestlistChat[]>(mockGuestlistChats);
+    const [guestlistChatMessages, setGuestlistChatMessages] = useState<GuestlistChatMessage[]>(mockGuestlistChatMessages);
+    const [eventChats, setEventChats] = useState<EventChat[]>(mockEventChats);
+    const [eventChatMessages, setEventChatMessages] = useState<EventChatMessage[]>(mockEventChatMessages);
     
     // Event Interaction State
     const [likedEventIds, setLikedEventIds] = useState<number[]>([]);
@@ -212,12 +250,60 @@ export const App: React.FC = () => {
     useEffect(() => { localStorage.setItem('wingman_promoters', JSON.stringify(appPromoters)); }, [appPromoters]);
     useEffect(() => { localStorage.setItem('wingman_events', JSON.stringify(appEvents)); }, [appEvents]);
     useEffect(() => { localStorage.setItem('wingman_venues', JSON.stringify(appVenues)); }, [appVenues]);
+    useEffect(() => { localStorage.setItem('wingman_challenges', JSON.stringify(appChallenges)); }, [appChallenges]);
     useEffect(() => { 
         // Always update persisted current user data when currentUser state changes
         if (currentUser) {
             localStorage.setItem('wingman_currentUserId', currentUser.id.toString()); 
         }
     }, [currentUser]);
+
+    // Notification Prompt Effect
+    useEffect(() => {
+        if (currentUser && !currentUser.notificationsEnabled && hasOnboarded) {
+             const hasSeenPrompt = sessionStorage.getItem('notifications_prompt_seen');
+             if (!hasSeenPrompt) {
+                 const timer = setTimeout(() => setShowNotificationsPrompt(true), 3000);
+                 return () => clearTimeout(timer);
+             }
+        }
+    }, [currentUser, hasOnboarded]);
+
+    // URL Parsing Effect for Shared Links
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        
+        // Handle Promoter Profile Sharing
+        const promoterId = params.get('promoter');
+        if (promoterId) {
+            const id = parseInt(promoterId, 10);
+            if (!isNaN(id)) {
+                const promoter = appPromoters.find(p => p.id === id);
+                if (promoter) {
+                    handleNavigate('promoterProfile', { promoterId: id });
+                }
+            }
+        }
+
+        // Handle Venue Sharing
+        const venueId = params.get('venue');
+        if (venueId) {
+            const id = parseInt(venueId, 10);
+            if (!isNaN(id)) {
+                const venue = appVenues.find(v => v.id === id);
+                if (venue) {
+                    handleNavigate('venueDetails', { venueId: id });
+                }
+            }
+        }
+
+        // Handle Event Sharing
+        const eventId = params.get('event');
+        if (eventId) {
+             handleNavigate('eventTimeline');
+        }
+
+    }, [appPromoters, appVenues]);
 
     const handleNavigate = (page: Page, params: any = {}) => {
         setCurrentPage(page);
@@ -244,12 +330,12 @@ export const App: React.FC = () => {
         handleNavigate('checkout');
     };
 
-    const handleCompleteBooking = (item: CartItem) => {
-        const bookedItem = { ...item, bookedTimestamp: Date.now(), isPlaceholder: false };
-        setBookedItems(prev => [...prev, bookedItem]);
-        setCartItems(prev => prev.filter(i => i.id !== item.id));
+    const handleMoveToCart = (item: CartItem) => {
+        // Move item from watchlist to cart (real item now)
+        const cartItem = { ...item, isPlaceholder: false };
+        setCartItems(prev => [...prev, cartItem]);
         setWatchlist(prev => prev.filter(i => i.id !== item.id));
-        handleNavigate('bookingConfirmed', { items: [bookedItem] });
+        showToast("Moved to Cart", "success");
     };
 
     const handleConfirmCheckout = (paymentMethod: 'tokens' | 'usd' | 'cashapp', itemIds: string[]) => {
@@ -266,7 +352,74 @@ export const App: React.FC = () => {
         setBookedItems(prev => [...prev, ...newBookedItems]);
         setCartItems(prev => prev.filter(i => !itemIds.includes(i.id)));
         
+        // Ensure items are removed from watchlist if they were added via "Add to Cart" directly from event page while also being bookmarked
+        setWatchlist(prev => prev.filter(w => !itemsToBook.some(b => 
+            (b.type === 'event' && w.type === 'event' && b.eventDetails?.event.id === w.eventDetails?.event.id) ||
+            (b.id === w.id) 
+        )));
+        
         handleNavigate('bookingConfirmed', { items: newBookedItems });
+    };
+
+    const handleStartBookingChat = (item: CartItem) => {
+        if (item.type === 'table' || item.type === 'guestlist') {
+            const venue = item.tableDetails?.venue || item.guestlistDetails?.venue;
+            const promoter = item.tableDetails?.promoter || item.guestlistDetails?.promoter;
+            const date = item.sortableDate || item.date;
+
+            if (!venue || !promoter || !date) {
+                showToast("Cannot start chat: Missing booking details.", "error");
+                return;
+            }
+
+            let chat = guestlistChats.find(c => 
+                c.venueId === venue.id && 
+                c.promoterId === promoter.id && 
+                c.date === date && 
+                c.memberIds.includes(currentUser.id)
+            );
+
+            if (!chat) {
+                const newId = Math.max(...guestlistChats.map(c => c.id), 0) + 1;
+                chat = {
+                    id: newId,
+                    venueId: venue.id,
+                    date: date,
+                    promoterId: promoter.id,
+                    memberIds: [currentUser.id, promoter.id],
+                    meetupTime: '11:00 PM'
+                };
+                setGuestlistChats(prev => [...prev, chat!]);
+            }
+
+            handleNavigate('guestlistChat', { chatId: chat.id });
+        } else if (item.type === 'event' && item.eventDetails) {
+            const event = item.eventDetails.event;
+            const originalEventId = getOriginalEventId(event.id);
+            let chat = eventChats.find(c => c.eventId === originalEventId && c.memberIds.includes(currentUser.id));
+            
+             if (!chat) {
+                chat = eventChats.find(c => c.eventId === originalEventId);
+                if (chat) {
+                    if (!chat.memberIds.includes(currentUser.id)) {
+                        const updatedChat = { ...chat, memberIds: [...chat.memberIds, currentUser.id] };
+                        setEventChats(prev => prev.map(c => c.id === updatedChat.id ? updatedChat : c));
+                        chat = updatedChat;
+                    }
+                } else {
+                     const newId = Math.max(...eventChats.map(c => c.id), 0) + 1;
+                     chat = {
+                         id: newId,
+                         eventId: originalEventId,
+                         memberIds: [currentUser.id]
+                     };
+                     setEventChats(prev => [...prev, chat!]);
+                }
+            }
+            handleNavigate('eventChat', { chatId: chat.id });
+        } else {
+             showToast("Chat not available for this item type.", "error");
+        }
     };
 
     const handleOpenGuestlistModal = (context: { promoter?: Promoter; venue?: Venue; date?: string }) => {
@@ -334,7 +487,20 @@ export const App: React.FC = () => {
         let updatedUser = { ...currentUser };
         if (type === 'promoter') {
             const current = currentUser.favoritePromoterIds || [];
-            updatedUser.favoritePromoterIds = current.includes(id) ? current.filter(i => i !== id) : [...current, id];
+            const isFavoriting = !current.includes(id);
+            updatedUser.favoritePromoterIds = isFavoriting ? [...current, id] : current.filter(i => i !== id);
+            
+            // Update promoter count
+            setAppPromoters(prev => prev.map(p => {
+                if (p.id === id) {
+                    return {
+                        ...p,
+                        favoritedByCount: isFavoriting ? p.favoritedByCount + 1 : Math.max(0, p.favoritedByCount - 1)
+                    };
+                }
+                return p;
+            }));
+
         } else if (type === 'venue') {
             const current = currentUser.favoriteVenueIds || [];
             updatedUser.favoriteVenueIds = current.includes(id) ? current.filter(i => i !== id) : [...current, id];
@@ -360,7 +526,7 @@ export const App: React.FC = () => {
             showToast('Request already sent', 'error');
             return;
         }
-        const newRequest: EventInvitationRequest = {
+        const newRequest: EventInvitationReq = {
             id: Date.now(),
             userId: currentUser.id,
             eventId: originalId,
@@ -392,12 +558,42 @@ export const App: React.FC = () => {
 
     const handleToggleBookmarkEvent = (eventId: number | string) => {
         const id = typeof eventId === 'string' ? parseInt(eventId.split('-')[0], 10) : eventId;
+        const event = appEvents.find(e => {
+            const origId = typeof e.id === 'string' ? parseInt(e.id.split('-')[0], 10) : e.id;
+            return origId === id;
+        });
+
         setBookmarkedEventIds(prev => {
             const isBookmarked = prev.includes(id);
             if (isBookmarked) {
+                // Remove from watchlist
+                setWatchlist(current => current.filter(item => {
+                    if (item.type !== 'event' || !item.eventDetails) return true;
+                    const itemEventId = typeof item.eventDetails.event.id === 'string' ? parseInt(item.eventDetails.event.id.split('-')[0], 10) : item.eventDetails.event.id;
+                    return itemEventId !== id;
+                }));
                 showToast('Removed from bookmarks', 'success');
                 return prev.filter(i => i !== id);
             } else {
+                // Add to watchlist
+                if (event) {
+                    const watchlistItem: CartItem = {
+                        id: `watchlist-event-${event.id}-${Date.now()}`,
+                        type: 'event',
+                        name: event.title,
+                        image: event.image,
+                        date: event.date,
+                        sortableDate: event.date,
+                        quantity: 1,
+                        fullPrice: event.priceGeneral || event.priceMale || 0,
+                        isPlaceholder: true,
+                        eventDetails: {
+                            event: event,
+                            guestDetails: { name: currentUser.name, email: currentUser.email }
+                        }
+                    };
+                    setWatchlist(current => [...current, watchlistItem]);
+                }
                 showToast('Added to bookmarks', 'success');
                 return [...prev, id];
             }
@@ -455,6 +651,31 @@ export const App: React.FC = () => {
         setGroupJoinRequests(prev => prev.filter(r => r.id !== requestId));
         showToast('Request rejected', 'success');
     };
+    
+    const handleToggleTask = (challengeId: number, taskId: number) => {
+        setAppChallenges(prev => prev.map(c => {
+            if (c.id === challengeId) {
+                return { 
+                    ...c, 
+                    tasks: c.tasks.map(t => t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t) 
+                };
+            }
+            return c;
+        }));
+    };
+
+    const handleDeleteTask = (challengeId: number, taskId: number) => {
+         setAppChallenges(prev => prev.map(c => {
+            if (c.id === challengeId) {
+                return { 
+                    ...c, 
+                    tasks: c.tasks.filter(t => t.id !== taskId) 
+                };
+            }
+            return c;
+        }));
+        showToast('Task deleted', 'success');
+    };
 
     const handleUpdateUserWithRewardCheck = (updatedUser: User) => {
         const completeness = calculateProfileCompleteness(updatedUser);
@@ -472,6 +693,62 @@ export const App: React.FC = () => {
         if (currentUser.id === userToSave.id) {
             setCurrentUser(userToSave);
         }
+    };
+
+    const handleEnableNotifications = () => {
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    handleUpdateUserWithRewardCheck({ ...currentUser, notificationsEnabled: true });
+                    showToast("Notifications enabled!", "success");
+                }
+            });
+        }
+        setShowNotificationsPrompt(false);
+        sessionStorage.setItem('notifications_prompt_seen', 'true');
+    };
+
+    const handleCloseNotificationsPrompt = () => {
+        setShowNotificationsPrompt(false);
+        sessionStorage.setItem('notifications_prompt_seen', 'true');
+    };
+
+    const handleSwitchUser = (targetUser: User) => {
+        // If initiating a switch from an actual Admin account, save the session
+        if (currentUser.role === UserRole.ADMIN && !realAdminUser) {
+            setRealAdminUser(currentUser);
+            localStorage.setItem('wingman_realAdminUserId', currentUser.id.toString());
+        }
+        
+        // If switching back to the admin user (self), clear session
+        if (realAdminUser && targetUser.id === realAdminUser.id) {
+             setRealAdminUser(null);
+             localStorage.removeItem('wingman_realAdminUserId');
+        }
+
+        setCurrentUser(targetUser);
+        setHasOnboarded(true); // Ensure we don't hit onboarding
+        handleNavigate('home');
+        
+        // Optional: Show a different toast message
+        if (currentUser.role === UserRole.ADMIN || realAdminUser) {
+             showToast(`Viewing as: ${targetUser.name}`, 'success');
+        } else {
+             showToast(`Switched to user: ${targetUser.name}`, 'success');
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('wingman_currentUserId');
+        localStorage.removeItem('wingman_realAdminUserId');
+        setRealAdminUser(null);
+        
+        // Reset to a default state or trigger onboarding
+        setHasOnboarded(false);
+        // Default to first user in list as a fresh start simulation
+        setCurrentUser(appUsers[0]); 
+        setIsMenuOpen(false);
+        showToast('Logged out', 'success');
     };
 
     // --- Admin Functions ---
@@ -685,9 +962,9 @@ export const App: React.FC = () => {
                 />;
             case 'challenges':
                 return <ChallengesPage 
-                    challenges={challenges} 
-                    onToggleTask={(cId, tId) => console.log('Toggle task', cId, tId)} 
-                    onDeleteTask={(cId, tId) => console.log('Delete task', cId, tId)} 
+                    challenges={appChallenges} 
+                    onToggleTask={handleToggleTask} 
+                    onDeleteTask={handleDeleteTask} 
                     onRewardClaimed={(amt, title) => {
                         setUserTokenBalance(prev => prev + amt);
                         showToast(`Claimed ${amt} TMKC for ${title}!`, 'success');
@@ -706,8 +983,12 @@ export const App: React.FC = () => {
                     onCreateChat={(name) => {
                         const newChat: FriendZoneChat = { id: Date.now(), name, creatorId: currentUser.id, memberIds: [currentUser.id] };
                         setFriendZoneChats([...friendZoneChats, newChat]);
+                        showToast('Chat created', 'success');
                     }} 
-                    onDeleteChat={(id) => setFriendZoneChats(friendZoneChats.filter(c => c.id !== id))} 
+                    onDeleteChat={(id) => {
+                        setFriendZoneChats(friendZoneChats.filter(c => c.id !== id));
+                        showToast('Chat deleted', 'success');
+                    }} 
                     onOpenChat={(id) => handleNavigate('friendZoneChat', { chatId: id })} 
                 />;
             case 'store':
@@ -832,7 +1113,13 @@ export const App: React.FC = () => {
                     venues={appVenues} 
                 />;
             case 'settings':
-                return <SettingsPage onNavigate={handleNavigate} />;
+                // Check if the current user is admin OR if we have a persistent admin session active
+                const isAdminSession = currentUser.role === UserRole.ADMIN || !!realAdminUser;
+                return <SettingsPage 
+                    onNavigate={handleNavigate} 
+                    users={isAdminSession ? appUsers : undefined} 
+                    onSwitchUser={isAdminSession ? handleSwitchUser : undefined} 
+                />;
             case 'chatbot':
                 return <ChatbotPage initialPrompt={pageParams.initialPrompt} />;
             case 'liveChat':
@@ -929,17 +1216,18 @@ export const App: React.FC = () => {
                     currentUser={currentUser} 
                     watchlist={watchlist} 
                     bookedItems={bookedItems} 
-                    venues={appVenues} 
+                    venues={appVenues}
+                    cartItems={cartItems} 
                     onRemoveItem={(id) => {
                         setCartItems(prev => prev.filter(i => i.id !== id));
                         setWatchlist(prev => prev.filter(i => i.id !== id));
                     }} 
                     onUpdatePaymentOption={(id, opt) => setCartItems(prev => prev.map(i => i.id === id ? { ...i, paymentOption: opt } : i))} 
                     onConfirmCheckout={handleConfirmCheckout} 
-                    onCompleteBooking={handleCompleteBooking} 
+                    onMoveToCart={handleMoveToCart}
                     onViewReceipt={(item) => handleNavigate('bookingConfirmed', { items: [item] })} 
                     userTokenBalance={userTokenBalance} 
-                    onStartChat={(item) => console.log('Start chat', item)} 
+                    onStartChat={handleStartBookingChat} 
                     onCancelRsvp={(item) => console.log('Cancel RSVP', item)} 
                     initialTab={pageParams.initialTab} 
                     onNavigate={handleNavigate}
@@ -948,8 +1236,8 @@ export const App: React.FC = () => {
                 return <EventChatsListPage 
                     currentUser={currentUser} 
                     onNavigate={handleNavigate} 
-                    eventChats={mockEventChats} 
-                    guestlistChats={mockGuestlistChats} 
+                    eventChats={eventChats} 
+                    guestlistChats={guestlistChats} 
                     allEvents={appEvents} 
                     venues={appVenues} 
                     promoters={appPromoters} 
@@ -958,7 +1246,7 @@ export const App: React.FC = () => {
             case 'guestlistChats':
                 return <GuestlistChatsPage 
                     currentUser={currentUser} 
-                    guestlistChats={mockGuestlistChats} 
+                    guestlistChats={guestlistChats} 
                     venues={appVenues} 
                     promoters={appPromoters} 
                     onViewChat={(id) => handleNavigate('guestlistChat', { chatId: id })} 
@@ -967,40 +1255,109 @@ export const App: React.FC = () => {
                 return <EventChatPage 
                     chatId={pageParams.chatId} 
                     currentUser={currentUser} 
-                    messages={mockEventChatMessages} 
+                    messages={eventChatMessages} 
                     allParticipants={[...appUsers, ...appPromoters]} 
                     allEvents={appEvents} 
-                    eventChats={mockEventChats} 
-                    onSendMessage={(id, text) => console.log('Send msg', id, text)} 
+                    eventChats={eventChats} 
+                    onSendMessage={(id, text) => {
+                        const newMsg: EventChatMessage = {
+                            id: Date.now(),
+                            chatId: id,
+                            senderId: currentUser.id,
+                            text,
+                            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        };
+                        setEventChatMessages(prev => [...prev, newMsg]);
+                    }} 
                     onBack={() => handleNavigate('eventChatsList')} 
                 />;
             case 'guestlistChat':
                 return <GuestlistChatPage 
                     chatId={pageParams.chatId} 
                     currentUser={currentUser} 
-                    messages={mockGuestlistChatMessages} 
+                    messages={guestlistChatMessages} 
                     allUsers={appUsers} 
                     allPromoters={appPromoters} 
-                    guestlistChats={mockGuestlistChats} 
+                    guestlistChats={guestlistChats} 
                     venues={appVenues} 
-                    onSendMessage={(id, text) => console.log('Send msg', id, text)} 
+                    onSendMessage={(id, text) => {
+                        const newMsg: GuestlistChatMessage = {
+                            id: Date.now(),
+                            chatId: id,
+                            senderId: currentUser.id,
+                            text,
+                            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        };
+                        setGuestlistChatMessages(prev => [...prev, newMsg]);
+                    }} 
                     onBack={() => handleNavigate('guestlistChats')} 
+                    bookedItems={bookedItems}
                 />;
             case 'friendZoneChat':
                 return <FriendZoneChatPage 
                     chatId={pageParams.chatId} 
                     currentUser={currentUser} 
                     chats={friendZoneChats} 
-                    messages={mockFriendZoneChatMessages} 
+                    messages={friendZoneChatMessages} 
                     promoters={appPromoters} 
                     users={appUsers} 
-                    onSendMessage={(id, text) => console.log('Send msg', id, text)} 
-                    onAddPromoter={(cId, pId) => console.log('Add promoter', cId, pId)} 
-                    onRemovePromoter={(cId, pId) => console.log('Remove promoter', cId, pId)} 
+                    onSendMessage={(id, text) => {
+                        const newMsg: FriendZoneChatMessage = {
+                            id: Date.now(),
+                            chatId: id,
+                            senderId: currentUser.id,
+                            text,
+                            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        };
+                        setFriendZoneChatMessages(prev => [...prev, newMsg]);
+                    }} 
+                    onAddPromoter={(cId, pId) => {
+                         setFriendZoneChats(prev => prev.map(c => {
+                             if (c.id === cId) {
+                                 const currentPromoters = c.promoterIds || [];
+                                 if (!currentPromoters.includes(pId)) {
+                                     return { ...c, promoterIds: [...currentPromoters, pId] };
+                                 }
+                             }
+                             return c;
+                         }));
+                         const promoter = appPromoters.find(p => p.id === pId);
+                         if (promoter) {
+                             const msg: FriendZoneChatMessage = {
+                                 id: Date.now(),
+                                 chatId: cId,
+                                 senderId: pId,
+                                 text: `Joined the chat. Let's make some plans! 🥂`,
+                                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                             };
+                             setFriendZoneChatMessages(prev => [...prev, msg]);
+                         }
+                         showToast('Promoter added', 'success');
+                    }} 
+                    onRemovePromoter={(cId, pId) => {
+                        setFriendZoneChats(prev => prev.map(c => {
+                            if (c.id === cId) {
+                                const currentPromoters = c.promoterIds || [];
+                                return { ...c, promoterIds: currentPromoters.filter(id => id !== pId) };
+                            }
+                            return c;
+                        }));
+                        showToast('Promoter removed', 'success');
+                    }} 
                     onBack={() => handleNavigate('friendsZone')} 
-                    onAddMember={(cId, uId) => console.log('Add member', cId, uId)} 
-                    onRemoveMember={(cId, uId) => console.log('Remove member', cId, uId)} 
-                    onLeaveChat={(cId) => console.log('Leave chat', cId)} 
+                    onAddMember={(cId, uId) => {
+                        setFriendZoneChats(prev => prev.map(c => c.id === cId && !c.memberIds.includes(uId) ? { ...c, memberIds: [...c.memberIds, uId] } : c));
+                        showToast('Member added', 'success');
+                    }} 
+                    onRemoveMember={(cId, uId) => {
+                        setFriendZoneChats(prev => prev.map(c => c.id === cId ? { ...c, memberIds: c.memberIds.filter(id => id !== uId) } : c));
+                        showToast('Member removed', 'success');
+                    }} 
+                    onLeaveChat={(cId) => {
+                        setFriendZoneChats(prev => prev.map(c => c.id === cId ? { ...c, memberIds: c.memberIds.filter(id => id !== currentUser.id) } : c));
+                        handleNavigate('friendsZone');
+                        showToast('Left chat', 'success');
+                    }} 
                 />;
             case 'promoterStats':
                 return <PromoterStatsPage 
@@ -1027,6 +1384,13 @@ export const App: React.FC = () => {
                     onToggleVenueFavorite={(id) => handleToggleFavorite(id, 'venue')} 
                     onViewVenueDetails={(v) => handleNavigate('venueDetails', { venueId: v.id })} 
                     currentUser={currentUser} 
+                    events={appEvents}
+                    venues={appVenues}
+                    likedEventIds={likedEventIds}
+                    onToggleLikeEvent={handleToggleLikeEvent}
+                    bookmarkedEventIds={bookmarkedEventIds}
+                    onToggleBookmarkEvent={handleToggleBookmarkEvent}
+                    onViewEvent={(e) => handleNavigate('eventTimeline')}
                 />;
             case 'venueDetails':
                 const venue = appVenues.find(v => v.id === pageParams.venueId);
@@ -1067,12 +1431,6 @@ export const App: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        if (!hasOnboarded) {
-            // Show onboarding
-        }
-    }, [hasOnboarded]);
-
     if (!currentUser) return null; // Render guard
 
     return (
@@ -1085,6 +1443,8 @@ export const App: React.FC = () => {
                     promoters={appPromoters} 
                     onSelectPromoter={handlePromoterSelection} 
                     onUpdateUser={handleUpdateUserWithRewardCheck}
+                    allUsers={appUsers}
+                    onSwitchUser={handleSwitchUser}
                 />
             ) : (
                 <>
@@ -1125,6 +1485,7 @@ export const App: React.FC = () => {
                         onNavigate={handleNavigate} 
                         currentPage={currentPage} 
                         currentUser={currentUser} 
+                        onLogout={handleLogout}
                     />
 
                     <CartPanel 
@@ -1259,6 +1620,13 @@ export const App: React.FC = () => {
                         />
                     )}
 
+                    {showNotificationsPrompt && (
+                        <NotificationsModal 
+                            onClose={handleCloseNotificationsPrompt} 
+                            onEnable={handleEnableNotifications} 
+                        />
+                    )}
+
                     <AdminAddUserModal 
                         isOpen={isAdminAddUserOpen}
                         onClose={() => setIsAdminAddUserOpen(false)}
@@ -1338,3 +1706,8 @@ export const App: React.FC = () => {
                         onClose={() => setPreviewUser(null)}
                         user={previewUser}
                     />
+                </>
+            )}
+        </div>
+    );
+};

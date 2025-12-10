@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { SendIcon } from './icons/SendIcon';
 import { User, Promoter, FriendZoneChatMessage, FriendZoneChat } from '../types';
@@ -52,9 +54,9 @@ export const FriendZoneChatPage: React.FC<FriendZoneChatPageProps> = ({ chatId, 
     
     const allParticipants = useMemo(() => [...users, ...promoters], [users, promoters]);
     
-    const activePromoter = useMemo(() => {
-        if (!currentChat?.promoterId) return null;
-        return promoters.find(p => p.id === currentChat.promoterId);
+    const activePromoters = useMemo(() => {
+        if (!currentChat?.promoterIds) return [];
+        return currentChat.promoterIds.map(id => promoters.find(p => p.id === id)).filter(Boolean) as Promoter[];
     }, [currentChat, promoters]);
 
     const scrollToBottom = () => {
@@ -96,38 +98,44 @@ export const FriendZoneChatPage: React.FC<FriendZoneChatPageProps> = ({ chatId, 
                 </div>
                 
                 {/* Promoter Management Area */}
-                <div className="flex items-center justify-between bg-gray-900 rounded-lg p-2 px-3 border border-gray-800">
-                    {activePromoter ? (
-                        <div className="flex items-center gap-3 flex-grow">
-                            <div className="relative">
-                                <img src={activePromoter.profilePhoto} alt={activePromoter.name} className="w-8 h-8 rounded-full object-cover border-2 border-amber-400" />
-                                <div className="absolute -bottom-1 -right-1 bg-amber-400 rounded-full p-0.5">
-                                    <StarIcon className="w-2 h-2 text-black fill-current" />
+                <div className="flex flex-col gap-2 bg-gray-900 rounded-lg p-2 px-3 border border-gray-800">
+                    <div className="flex items-center justify-between">
+                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Wingmen</span>
+                         <button 
+                            onClick={() => setIsPromoterModalOpen(true)}
+                            className="text-xs bg-[#EC4899] text-white font-bold px-3 py-1.5 rounded-full hover:bg-[#d8428a] transition-colors"
+                        >
+                            + Add Promoter
+                        </button>
+                    </div>
+                    {activePromoters.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                            {activePromoters.map(promoter => (
+                                <div key={promoter.id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative">
+                                            <img src={promoter.profilePhoto} alt={promoter.name} className="w-8 h-8 rounded-full object-cover border-2 border-amber-400" />
+                                            <div className="absolute -bottom-1 -right-1 bg-amber-400 rounded-full p-0.5">
+                                                <StarIcon className="w-2 h-2 text-black fill-current" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-white">{promoter.name}</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => onRemovePromoter(chatId, promoter.id)}
+                                        className="ml-auto text-xs text-red-400 hover:text-red-300 border border-red-900/50 bg-red-900/20 px-2 py-1 rounded transition-colors"
+                                    >
+                                        Remove
+                                    </button>
                                 </div>
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-white">{activePromoter.name}</p>
-                                <p className="text-[10px] text-amber-400 font-semibold uppercase">Wingman Active</p>
-                            </div>
-                            <button 
-                                onClick={() => onRemovePromoter(chatId, activePromoter.id)}
-                                className="ml-auto text-xs text-red-400 hover:text-red-300 border border-red-900/50 bg-red-900/20 px-2 py-1 rounded transition-colors"
-                            >
-                                Remove
-                            </button>
+                            ))}
                         </div>
                     ) : (
-                        <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-2 text-gray-400">
-                                <UsersIcon className="w-4 h-4" />
-                                <span className="text-xs italic">No promoter in chat</span>
-                            </div>
-                            <button 
-                                onClick={() => setIsPromoterModalOpen(true)}
-                                className="text-xs bg-[#EC4899] text-white font-bold px-3 py-1.5 rounded-full hover:bg-[#d8428a] transition-colors"
-                            >
-                                + Add Promoter
-                            </button>
+                        <div className="flex items-center gap-2 text-gray-500 py-1">
+                            <UsersIcon className="w-4 h-4" />
+                            <span className="text-xs italic">No promoter in chat</span>
                         </div>
                     )}
                 </div>

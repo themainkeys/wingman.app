@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Event } from '../types';
 import { HeartIcon } from './icons/HeartIcon';
 import { BookmarkIcon } from './icons/BookmarkIcon';
@@ -9,6 +9,7 @@ import { ShareIcon } from './icons/ShareIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { KeyIcon } from './icons/KeyIcon';
+import { ConfirmationModal } from './modals/ConfirmationModal';
 
 interface TimelineEventCardProps {
   event: Event;
@@ -47,6 +48,9 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({
   onRequestInvite,
   onBook
 }) => {
+  const [isCopied, setIsCopied] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+
   const eventDate = new Date(event.date + 'T00:00:00'); // To avoid timezone issues
   const month = eventDate.toLocaleString('default', { month: 'short' }).toUpperCase();
   const day = eventDate.getDate();
@@ -69,12 +73,27 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({
     } else {
         try {
             await navigator.clipboard.writeText(shareUrl);
-            alert('Event link copied to clipboard!');
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy: ', err);
             alert('Sharing is not supported on this browser. Could not copy link.');
         }
     }
+  };
+
+  const handleRsvpClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (isRsvped) {
+          setIsCancelModalOpen(true);
+      } else {
+          onRsvp(event.id);
+      }
+  };
+
+  const handleConfirmCancel = () => {
+      onRsvp(event.id);
+      setIsCancelModalOpen(false);
   };
 
   const renderActionButton = () => {
@@ -83,8 +102,12 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({
               return (
                 <button
                     onClick={(e) => {
-                        e.stopPropagation();
-                        onBook ? onBook(event) : onRsvp(event.id);
+                        if (onBook) {
+                            e.stopPropagation();
+                            onBook(event);
+                        } else {
+                            handleRsvpClick(e);
+                        }
                     }}
                     className={`font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 w-24 ${
                         isRsvped
@@ -155,10 +178,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({
 
       return (
         <button
-            onClick={(e) => {
-                e.stopPropagation();
-                onRsvp(event.id);
-            }}
+            onClick={handleRsvpClick}
             className={`font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200 flex items-center justify-center gap-1.5 w-24 ${
                 isRsvped
                     ? 'bg-gray-700 text-gray-300'
@@ -179,6 +199,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({
   };
 
   return (
+    <>
     <div
       onClick={() => onViewDetails(event)}
       onKeyPress={(e) => e.key === 'Enter' && onViewDetails(event)}
@@ -240,10 +261,20 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({
                     className="p-2 rounded-full text-gray-400 hover:bg-gray-800 transition-colors active:scale-95"
                     aria-label={`Share ${event.title}`}
                 >
-                    <ShareIcon className="w-5 h-5" />
+                    {isCopied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <ShareIcon className="w-5 h-5" />}
                 </button>
             </div>
        </div>
     </div>
+    <ConfirmationModal 
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        onConfirm={handleConfirmCancel}
+        title="Cancel RSVP"
+        message="Are you sure you want to cancel your RSVP for this event?"
+        confirmText="Yes, cancel"
+        confirmVariant="danger"
+    />
+    </>
   );
 };

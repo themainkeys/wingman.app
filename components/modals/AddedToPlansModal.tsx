@@ -30,20 +30,20 @@ export const AddedToPlansModal: React.FC<AddedToPlansModalProps> = ({ isOpen, on
         </p>
 
         <div className="flex flex-col gap-3">
+             <button 
+                onClick={onCheckout}
+                className="w-full bg-[#EC4899] text-white font-bold py-3.5 px-4 rounded-xl hover:bg-[#d8428a] transition-transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-pink-900/20"
+            >
+                <CartIcon className="w-5 h-5" />
+                Go to My Plans
+            </button>
+
             <button 
                 onClick={onKeepBooking}
                 className="w-full bg-gray-800 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 border border-gray-700"
             >
                 <BookTableIcon className="w-5 h-5" />
-                {keepBookingLabel || "Keep booking"}
-            </button>
-            
-            <button 
-                onClick={onCheckout}
-                className="w-full bg-[#EC4899] text-white font-bold py-3.5 px-4 rounded-xl hover:bg-[#d8428a] transition-transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg shadow-pink-900/20"
-            >
-                <CartIcon className="w-5 h-5" />
-                Go to Checkout
+                {keepBookingLabel || "Keep Booking"}
             </button>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { StarIcon } from './icons/StarIcon';
 import { QrIcon } from './icons/QrIcon';
 import { QrScanner } from './QrScanner';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { FavoriteConfirmationModal } from './modals/FavoriteConfirmationModal';
 
 interface VenueDetailsPageProps {
   venue: Venue;
@@ -43,6 +44,7 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
   const [videoLoadingMessage, setVideoLoadingMessage] = useState('');
   const [showVideo, setShowVideo] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isFavoriteModalOpen, setIsFavoriteModalOpen] = useState(false);
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
   const isApprovedGirl = currentUser.accessLevel === UserAccessLevel.APPROVED_GIRL;
@@ -181,6 +183,19 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
     setIsScannerOpen(false);
     onCheckIn(venue.id, data);
   };
+  
+  const handleFavoriteClick = () => {
+    if (isFavorite) {
+        setIsFavoriteModalOpen(true);
+    } else {
+        onToggleFavorite(venue.id);
+    }
+  };
+
+  const confirmFavorite = () => {
+    onToggleFavorite(venue.id);
+    setIsFavoriteModalOpen(false);
+  };
 
   return (
     <>
@@ -249,7 +264,7 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
             <div className="flex items-center gap-4">
                 <h1 className="text-4xl font-extrabold text-white">{venue.name}</h1>
                 <button
-                    onClick={() => onToggleFavorite(venue.id)}
+                    onClick={handleFavoriteClick}
                     className="p-3 bg-black/50 rounded-full text-white hover:bg-white/20 transition-colors"
                     aria-label={isFavorite ? `Remove ${venue.name} from favorites` : `Add ${venue.name} to favorites`}
                 >
@@ -437,6 +452,14 @@ export const VenueDetailsPage: React.FC<VenueDetailsPageProps> = ({ venue, onBac
                 )}
             </div>
         </div>
+        <FavoriteConfirmationModal 
+            isOpen={isFavoriteModalOpen}
+            onClose={() => setIsFavoriteModalOpen(false)}
+            onConfirm={confirmFavorite}
+            entityName={venue.name}
+            entityType="Venue"
+            action={isFavorite ? 'remove' : 'add'}
+        />
     </div>
     </>
   );

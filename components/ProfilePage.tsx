@@ -1,4 +1,6 @@
 
+
+
 import React, { useMemo } from 'react';
 import { Page, User, Booking, Venue, UserRole } from '../types';
 import { ChevronRightIcon } from './icons/ChevronRightIcon';
@@ -6,6 +8,7 @@ import { CalendarDaysIcon } from './icons/CalendarDaysIcon';
 import { KeyIcon } from './icons/KeyIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { FaInstagram } from './icons/FaInstagram';
+import { FaTiktok } from './icons/FaTiktok';
 import { AskGabyIcon } from './icons/AskGabyIcon';
 import { PencilIcon } from './icons/PencilIcon';
 import { WalletIcon } from './icons/FeatureIcons';
@@ -37,7 +40,7 @@ const calculateProfileCompleteness = (user: User): number => {
     if (user.profilePhoto && !user.profilePhoto.includes('seed')) score++;
     if (user.bio && user.bio.length > 10) score++;
     if (user.city) score++;
-    if (user.instagramHandle) score++;
+    if (user.instagramHandle || user.tiktokHandle) score++;
     if (user.phoneNumber) score++;
     if (user.dob) score++;
     if (user.ethnicity) score++;
@@ -180,6 +183,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentUse
                                 <a href={`https://instagram.com/${user.instagramHandle}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-gray-800/30 px-3 py-1.5 rounded-lg hover:text-pink-400 hover:bg-gray-800 transition-colors border border-gray-700/50 hover:border-pink-500/30">
                                     <FaInstagram className="w-4 h-4" />
                                     <span>@{user.instagramHandle}</span>
+                                </a>
+                             )}
+                             {user.tiktokHandle && (
+                                <a href={`https://tiktok.com/@${user.tiktokHandle}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-gray-800/30 px-3 py-1.5 rounded-lg hover:text-pink-400 hover:bg-gray-800 transition-colors border border-gray-700/50 hover:border-pink-500/30">
+                                    <FaTiktok className="w-4 h-4" />
+                                    <span>@{user.tiktokHandle}</span>
                                 </a>
                              )}
                         </div>

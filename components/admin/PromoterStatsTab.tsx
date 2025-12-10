@@ -12,6 +12,7 @@ interface PromoterStatsTabProps {
   bookedItems: CartItem[];
   guestlistRequests: GuestlistJoinRequest[];
   onPreviewPromoter: (promoter: Promoter) => void;
+  onViewStats?: (promoter: Promoter) => void;
 }
 
 interface PromoterWithStats extends Promoter {
@@ -66,7 +67,7 @@ const SortableHeader: React.FC<{
 };
 
 
-export const PromoterStatsTab: React.FC<PromoterStatsTabProps> = ({ promoters, bookedItems, guestlistRequests, onPreviewPromoter }) => {
+export const PromoterStatsTab: React.FC<PromoterStatsTabProps> = ({ promoters, bookedItems, guestlistRequests, onPreviewPromoter, onViewStats }) => {
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
     const [sortConfig, setSortConfig] = useState<{ key: keyof PromoterWithStats | null; direction: 'asc' | 'desc' }>({ key: 'totalRevenue', direction: 'desc' });
 
@@ -179,7 +180,12 @@ export const PromoterStatsTab: React.FC<PromoterStatsTabProps> = ({ promoters, b
                     </thead>
                     <tbody>
                         {sortedPromoters.map(p => (
-                            <tr key={p.id} onClick={() => onPreviewPromoter(p)} className="bg-gray-900 border-b border-gray-800 hover:bg-gray-800 cursor-pointer">
+                            <tr 
+                                key={p.id} 
+                                onClick={() => onViewStats ? onViewStats(p) : onPreviewPromoter(p)} 
+                                className="bg-gray-900 border-b border-gray-800 hover:bg-gray-800 cursor-pointer"
+                                title="Click to view detailed analytics"
+                            >
                                 <td className="px-4 py-3 font-semibold text-white">
                                     <div className="flex items-center gap-3">
                                         <img src={p.profilePhoto} alt={p.name} className="w-8 h-8 rounded-full object-cover"/>

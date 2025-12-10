@@ -8,18 +8,26 @@ interface FavoriteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  promoterName: string;
+  entityName: string;
+  entityType?: 'Promoter' | 'Venue' | 'Event';
   action: 'add' | 'remove';
 }
 
-export const FavoriteConfirmationModal: React.FC<FavoriteConfirmationModalProps> = ({ isOpen, onClose, onConfirm, promoterName, action }) => {
+export const FavoriteConfirmationModal: React.FC<FavoriteConfirmationModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  entityName, 
+  entityType = 'Promoter',
+  action 
+}) => {
   if (!isOpen) return null;
 
   const isRemove = action === 'remove';
-  const title = isRemove ? 'Unfavorite Promoter?' : 'Favorite Promoter?';
+  const title = isRemove ? `Unfavorite ${entityType}?` : `Favorite ${entityType}?`;
   const message = isRemove 
-    ? `Are you sure you want to remove ${promoterName} from your favorites?`
-    : `Are you sure you want to add ${promoterName} to your favorites?`;
+    ? `Are you sure you want to remove ${entityName} from your favorites?`
+    : `Are you sure you want to add ${entityName} to your favorites?`;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>

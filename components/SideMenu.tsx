@@ -21,6 +21,7 @@ interface SideMenuProps {
   onNavigate: (page: Page) => void;
   currentPage: Page;
   currentUser: User;
+  onLogout?: () => void;
 }
 
 const MenuItem: React.FC<{ icon: React.ReactNode; label: string; isActive?: boolean; isLogout?: boolean; onClick: () => void; className?: string }> = ({ icon, label, isActive = false, isLogout = false, onClick, className = '' }) => (
@@ -39,7 +40,7 @@ const MenuItem: React.FC<{ icon: React.ReactNode; label: string; isActive?: bool
 );
 
 
-export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate, currentPage, currentUser }) => {
+export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate, currentPage, currentUser, onLogout }) => {
   
   const handleNavigation = (page: Page) => {
     onNavigate(page);
@@ -47,8 +48,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate,
   };
 
   const handleLogoutClick = () => {
-    // In a real app, this would trigger a logout flow
-    console.log("Logout clicked");
+    if (onLogout) onLogout();
     onClose();
   }
   

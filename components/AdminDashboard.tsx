@@ -10,6 +10,11 @@ import { ChevronDownIcon } from './icons/ChevronDownIcon';
 import { StoreTab } from './admin/StoreTab';
 import { PromoterStatsTab } from './admin/PromoterStatsTab';
 import { PushNotificationsTab } from './admin/PushNotificationsTab';
+import { TrashIcon } from './icons/TrashIcon';
+import { CheckIcon } from './icons/CheckIcon';
+import { CloseIcon } from './icons/CloseIcon';
+import { UserAnalyticsModal } from './modals/UserAnalyticsModal';
+import { PromoterStatsModal } from './modals/PromoterStatsModal';
 
 interface AdminDashboardProps {
     users: User[];
@@ -54,6 +59,8 @@ interface AdminDashboardProps {
     onPreviewUser: (user: User) => void;
     eventInvitations: EventInvitation[];
     onSendPushNotification: (notification: Omit<AppNotification, 'id' | 'time' | 'read'>) => void;
+    onBulkDeleteEvents?: (eventIds: (number | string)[]) => void;
+    onBulkUpdateEvents?: (eventIds: (number | string)[], updates: Partial<Event>) => void;
 }
 
 
@@ -95,6 +102,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     const [venueMusicTypeFilter, setVenueMusicTypeFilter] = useState('all');
     const [venueVibeFilter, setVenueVibeFilter] = useState('all');
 
+    // Bulk Actions State for Events
+    const [selectedEventIds, setSelectedEventIds] = useState<(number | string)[]>([]);
+    
+    // User Analytics State
+    const [userForAnalytics, setUserForAnalytics] = useState<User | null>(null);
+    const [promoterForStats, setPromoterForStats] = useState<Promoter | null>(null);
+
     useEffect(() => {
         setSearchTerm('');
         setPromoterCityFilter('all');
@@ -107,6 +121,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         setVenueLocationFilter('all');
         setVenueMusicTypeFilter('all');
         setVenueVibeFilter('all');
+        setSelectedEventIds([]);
     }, [activeTab]);
 
 
@@ -153,6 +168,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
     const getVenueName = (id: number) => venues.find(v => v.id === id)?.name || 'N/A';
     
+    // Bulk Action Handlers
+    const handleToggleEventSelection = (eventId: number | string) => {
+        setSelectedEventIds(prev => 
+            prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]
+        );
+    };
+
+    const handleSelectAllEvents = () => {
+        if (selectedEventIds.length === filteredEvents.length) {
+            setSelectedEventIds([]);
+        } else {
+            setSelectedEventIds(filteredEvents.map(e => e.id));
+        }
+    };
+
+    const handleBulkDelete = () => {
+        if (confirm(`Are you sure you want to delete ${selectedEventIds.length} events?`)) {
+            props.onBulkDeleteEvents?.(selectedEventIds);
+            setSelectedEventIds([]);
+        }
+    };
+
+    const handleBulkUpdateType = (type: 'EXCLUSIVE' | 'INVITE ONLY') => {
+        props.onBulkUpdateEvents?.(selectedEventIds, { type });
+        setSelectedEventIds([]);
+    };
+
     const renderFilters = () => {
         const filters = (() => {
             switch (activeTab) {
@@ -267,6 +309,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         bookedItems={props.bookedItems}
                         guestlistRequests={props.guestlistRequests}
                         onPreviewPromoter={props.onPreviewPromoter}
+                        onViewStats={(p) => setPromoterForStats(p)}
                     />
                 )}
                 {activeTab === 'promoters' && (
@@ -277,7 +320,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         {filteredPromoters.length > 0 ? filteredPromoters.map(promoter => {
                             const user = props.users.find(u => u.id === promoter.id);
                             if (!user) return null;
-                            return <AdminPromoterListItem key={promoter.id} promoter={promoter} user={user} onEdit={props.onEditPromoter} onDelete={props.onDeletePromoter} onPreview={props.onPreviewPromoter} onSuspend={props.onSuspendPromoter} />;
+                            return <AdminPromoterListItem key={promoter.id} promoter={promoter} user={user} onEdit={props.onEditPromoter} onDelete={props.onDeletePromoter} onPreview={props.onPreviewPromoter} onSuspend={props.onSuspendPromoter} onViewStats={(p) => setPromoterForStats(p)} />;
                         }) : <p className="text-center text-gray-500 py-8">No promoters found.</p>}
                     </div>
                 )}
@@ -286,15 +329,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <div className="flex justify-end mb-4">
                             <button onClick={props.onAddUser} className="bg-[#EC4899] text-white font-bold py-2 px-4 rounded-lg text-sm">Create User</button>
                         </div>
-                        {filteredUsers.length > 0 ? filteredUsers.map(user => <AdminUserListItem key={user.id} user={user} onEdit={props.onEditUser} onViewProfile={props.onViewUser} onBlock={props.onBlockUser} />) : <p className="text-center text-gray-500 py-8">No users found.</p>}
+                        {filteredUsers.length > 0 ? filteredUsers.map(user => <AdminUserListItem key={user.id} user={user} onEdit={props.onEditUser} onViewProfile={props.onViewUser} onBlock={props.onBlockUser} onViewAnalytics={(u) => setUserForAnalytics(u)} />) : <p className="text-center text-gray-500 py-8">No users found.</p>}
                     </div>
                 )}
                 {activeTab === 'events' && (
                     <div className="space-y-3">
-                         <div className="flex justify-end mb-4">
+                         <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
+                            {selectedEventIds.length > 0 ? (
+                                <div className="flex items-center gap-2 bg-gray-800 p-2 rounded-lg animate-fade-in">
+                                    <span className="text-sm font-semibold text-white px-2">{selectedEventIds.length} Selected</span>
+                                    <button onClick={() => handleBulkUpdateType('EXCLUSIVE')} className="text-xs bg-green-900/50 text-green-300 px-3 py-1.5 rounded hover:bg-green-800 transition-colors">Set Exclusive</button>
+                                    <button onClick={() => handleBulkUpdateType('INVITE ONLY')} className="text-xs bg-purple-900/50 text-purple-300 px-3 py-1.5 rounded hover:bg-purple-800 transition-colors">Set Invite Only</button>
+                                    <button onClick={handleBulkDelete} className="p-1.5 bg-red-900/50 text-red-400 rounded hover:bg-red-800 transition-colors" title="Delete Selected">
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setSelectedEventIds([])} className="p-1.5 text-gray-400 hover:text-white" title="Clear Selection">
+                                        <CloseIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <button onClick={handleSelectAllEvents} className="text-sm text-gray-400 hover:text-white font-semibold">Select All Visible</button>
+                            )}
                             <button onClick={props.onAddEvent} className="bg-[#EC4899] text-white font-bold py-2 px-4 rounded-lg text-sm">Add Event</button>
                         </div>
-                        {filteredEvents.length > 0 ? filteredEvents.map(event => <AdminEventListItem key={event.id} event={event} venueName={getVenueName(event.venueId)} onEdit={props.onEditEvent} onDelete={props.onDeleteEvent} onPreview={props.onPreviewEvent} />) : <p className="text-center text-gray-500 py-8">No events found.</p>}
+                        {filteredEvents.length > 0 ? filteredEvents.map(event => <AdminEventListItem key={event.id} event={event} venueName={getVenueName(event.venueId)} onEdit={props.onEditEvent} onDelete={props.onDeleteEvent} onPreview={props.onPreviewEvent} isSelected={selectedEventIds.includes(event.id)} onToggleSelect={handleToggleEventSelection} />) : <p className="text-center text-gray-500 py-8">No events found.</p>}
                     </div>
                 )}
                  {activeTab === 'venues' && (
@@ -342,6 +400,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     />
                 )}
             </div>
+            
+            <UserAnalyticsModal 
+                isOpen={!!userForAnalytics}
+                onClose={() => setUserForAnalytics(null)}
+                user={userForAnalytics}
+                bookedItems={props.bookedItems}
+                venues={props.venues}
+            />
+
+            <PromoterStatsModal
+                isOpen={!!promoterForStats}
+                onClose={() => setPromoterForStats(null)}
+                promoter={promoterForStats}
+                allBookings={props.bookedItems}
+                allGuestlistRequests={props.guestlistRequests}
+            />
         </div>
     );
 };

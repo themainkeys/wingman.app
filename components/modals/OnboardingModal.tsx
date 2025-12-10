@@ -13,13 +13,14 @@ import { BookIcon } from '../icons/BookIcon';
 import { StarIcon } from '../icons/StarIcon';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
 import { ImageCropModal } from './ImageCropModal';
-import { CloudArrowUpIcon } from '../icons/CloudArrowUpIcon';
 import { PencilIcon } from '../icons/PencilIcon';
 import { Spinner } from '../icons/Spinner';
 import { UserIcon } from '../icons/UserIcon';
 import { MailIcon } from '../icons/MailIcon';
 import { PhoneIcon } from '../icons/PhoneIcon';
 import { KeyIcon } from '../icons/KeyIcon';
+import { GoogleIcon } from '../icons/GoogleIcon';
+import { FacebookIcon } from '../icons/FacebookIcon';
 
 interface OnboardingModalProps {
   user: User;
@@ -28,19 +29,25 @@ interface OnboardingModalProps {
   promoters: Promoter[];
   onSelectPromoter: (promoterId: number | null) => void;
   onUpdateUser?: (user: User) => void;
+  allUsers?: User[];
+  onSwitchUser?: (user: User) => void;
 }
 
 const ONBOARDING_REWARD = 100;
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish, onNavigate, promoters, onSelectPromoter, onUpdateUser }) => {
+export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish, onNavigate, promoters, onSelectPromoter, onUpdateUser, allUsers, onSwitchUser }) => {
     const [currentStep, setCurrentStep] = useState(0);
     const [isNotificationEnabled, setIsNotificationEnabled] = useState(false);
     const [selectedPromoterId, setSelectedPromoterId] = useState<number | null>(null);
     
-    // Sign Up State
-    const [signUpData, setSignUpData] = useState({
+    // Auth State
+    const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+    // Sign Up/Login Data
+    const [authData, setAuthData] = useState({
         name: '',
         email: '',
         phone: '',
@@ -123,56 +130,135 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
         }
     };
 
-    const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAuthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setSignUpData(prev => ({ ...prev, [name]: value }));
+        setAuthData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSignUpSubmit = () => {
-        if (!signUpData.name || !signUpData.email || !signUpData.password) {
+    const handleAuthSubmit = () => {
+        if (!authData.email || !authData.password) {
             alert("Please fill in all required fields.");
             return;
         }
-        if (signUpData.password !== signUpData.confirmPassword) {
-            alert("Passwords do not match.");
-            return;
+
+        if (authMode === 'signup') {
+             if (!authData.name) {
+                alert("Name is required.");
+                return;
+             }
+             if (authData.password !== authData.confirmPassword) {
+                alert("Passwords do not match.");
+                return;
+            }
+        }
+
+        // Mock Login: Check if email matches existing user to switch account
+        if (authMode === 'login' && allUsers && onSwitchUser) {
+            const foundUser = allUsers.find(u => u.email.toLowerCase() === authData.email.toLowerCase());
+            
+            if (foundUser) {
+                 setIsAuthenticating(true);
+                 setTimeout(() => {
+                    setIsAuthenticating(false);
+                    onSwitchUser(foundUser); // This effectively logs them in
+                    onFinish(true); // Close onboarding if switch happens
+                 }, 1500);
+                 return;
+            }
         }
         
-        if (onUpdateUser) {
-            onUpdateUser({
-                ...user,
-                name: signUpData.name,
-                email: signUpData.email,
-                phoneNumber: signUpData.phone
-            });
-        }
-        goToNext();
+        setIsAuthenticating(true);
+        
+        // Simulate API call for regular flow (no switch)
+        setTimeout(() => {
+            setIsAuthenticating(false);
+            if (onUpdateUser) {
+                onUpdateUser({
+                    ...user,
+                    name: authMode === 'signup' ? authData.name : 'Welcome Back User',
+                    email: authData.email,
+                    phoneNumber: authData.phone || user.phoneNumber
+                });
+            }
+            goToNext();
+        }, 1500);
+    };
+
+    const handleSocialLogin = (provider: 'Google' | 'Facebook') => {
+        setIsAuthenticating(true);
+        // Simulate OAuth Process
+        setTimeout(() => {
+            setIsAuthenticating(false);
+            if (onUpdateUser) {
+                onUpdateUser({
+                    ...user,
+                    name: `Alex ${provider}`,
+                    email: `alex@${provider.toLowerCase()}.com`,
+                    profilePhoto: provider === 'Google' 
+                        ? 'https://picsum.photos/seed/googleUser/200/200' 
+                        : 'https://picsum.photos/seed/fbUser/200/200'
+                });
+            }
+            goToNext();
+        }, 1500);
     };
 
     const steps = [
         {
-            id: 'signup',
+            id: 'auth',
             icon: <SparkleIcon className="w-12 h-12 text-[#EC4899]" />,
-            title: "Create Account",
-            description: "Join Miami's premier nightlife community.",
+            title: authMode === 'login' ? "Welcome Back" : "Create Account",
+            description: authMode === 'login' ? "Log in to access your exclusive nightlife concierge." : "Join Miami's premier nightlife community.",
             customContent: (
                 <div className="mt-6 w-full max-w-sm mx-auto space-y-4 text-left">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Full Name <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <UserIcon className="w-5 h-5 text-gray-500" />
-                            </div>
-                            <input 
-                                type="text" 
-                                name="name"
-                                value={signUpData.name}
-                                onChange={handleSignUpChange}
-                                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
-                                placeholder="John Doe"
-                            />
-                        </div>
+                     {/* Social Buttons */}
+                     <div className="space-y-3 mb-6">
+                        <button 
+                            onClick={() => handleSocialLogin('Google')}
+                            disabled={isAuthenticating}
+                            className="w-full bg-white text-black font-semibold py-3 px-4 rounded-lg shadow-md flex items-center justify-center gap-3 hover:bg-gray-100 transition-colors disabled:opacity-70"
+                        >
+                            {isAuthenticating ? <Spinner className="w-5 h-5 text-gray-600" /> : <GoogleIcon className="w-5 h-5" />}
+                            Continue with Google
+                        </button>
+                        <button 
+                            onClick={() => handleSocialLogin('Facebook')}
+                            disabled={isAuthenticating}
+                            className="w-full bg-[#1877F2] text-white font-semibold py-3 px-4 rounded-lg shadow-md flex items-center justify-center gap-3 hover:bg-[#166fe5] transition-colors disabled:opacity-70"
+                        >
+                            {isAuthenticating ? <Spinner className="w-5 h-5 text-white" /> : <FacebookIcon className="w-5 h-5" />}
+                            Continue with Facebook
+                        </button>
                     </div>
+
+                    <div className="flex items-center gap-4 my-4">
+                        <div className="flex-grow h-px bg-gray-700"></div>
+                        <span className="text-gray-500 text-xs uppercase font-bold">Or</span>
+                        <div className="flex-grow h-px bg-gray-700"></div>
+                    </div>
+
+                    {/* Auth Form */}
+                    {authMode === 'signup' && (
+                        <>
+                             <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Full Name <span className="text-red-500">*</span></label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <UserIcon className="w-5 h-5 text-gray-500" />
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        name="name"
+                                        value={authData.name}
+                                        onChange={handleAuthChange}
+                                        className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                        placeholder="John Doe"
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
+
                     <div className="space-y-1">
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Email Address <span className="text-red-500">*</span></label>
                         <div className="relative">
@@ -182,30 +268,34 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                             <input 
                                 type="email" 
                                 name="email"
-                                value={signUpData.email}
-                                onChange={handleSignUpChange}
+                                value={authData.email}
+                                onChange={handleAuthChange}
                                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
                                 placeholder="you@example.com"
                             />
                         </div>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <PhoneIcon className="w-5 h-5 text-gray-500" />
+
+                    {authMode === 'signup' && (
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <PhoneIcon className="w-5 h-5 text-gray-500" />
+                                </div>
+                                <input 
+                                    type="tel" 
+                                    name="phone"
+                                    value={authData.phone}
+                                    onChange={handleAuthChange}
+                                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                    placeholder="+1 (555) 000-0000"
+                                />
                             </div>
-                            <input 
-                                type="tel" 
-                                name="phone"
-                                value={signUpData.phone}
-                                onChange={handleSignUpChange}
-                                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
-                                placeholder="+1 (555) 000-0000"
-                            />
                         </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    )}
+
+                    <div className={`grid ${authMode === 'signup' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Password <span className="text-red-500">*</span></label>
                             <div className="relative">
@@ -215,35 +305,54 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                                 <input 
                                     type="password" 
                                     name="password"
-                                    value={signUpData.password}
-                                    onChange={handleSignUpChange}
+                                    value={authData.password}
+                                    onChange={handleAuthChange}
                                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 pl-10 focus:ring-[#EC4899] focus:border-[#EC4899]"
                                     placeholder="••••••••"
                                 />
                             </div>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Confirm <span className="text-red-500">*</span></label>
-                            <input 
-                                type="password" 
-                                name="confirmPassword"
-                                value={signUpData.confirmPassword}
-                                onChange={handleSignUpChange}
-                                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 focus:ring-[#EC4899] focus:border-[#EC4899]"
-                                placeholder="••••••••"
-                            />
-                        </div>
+                        {authMode === 'signup' && (
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Confirm <span className="text-red-500">*</span></label>
+                                <input 
+                                    type="password" 
+                                    name="confirmPassword"
+                                    value={authData.confirmPassword}
+                                    onChange={handleAuthChange}
+                                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg p-3 focus:ring-[#EC4899] focus:border-[#EC4899]"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                        )}
+                    </div>
+                    
+                    <button 
+                        onClick={handleAuthSubmit} 
+                        disabled={isAuthenticating}
+                        className="mt-6 w-full bg-[#EC4899] text-white font-bold py-3 rounded-lg shadow-lg shadow-pink-500/30 hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isAuthenticating && <Spinner className="w-5 h-5" />}
+                        {authMode === 'login' ? 'Log In' : 'Create Account'}
+                    </button>
+
+                    <div className="text-center mt-4">
+                        {authMode === 'login' ? (
+                            <p className="text-sm text-gray-400">
+                                Don't have an account? {' '}
+                                <button onClick={() => setAuthMode('signup')} className="text-[#EC4899] font-bold hover:underline">Sign Up</button>
+                            </p>
+                        ) : (
+                             <p className="text-sm text-gray-400">
+                                Already have an account? {' '}
+                                <button onClick={() => setAuthMode('login')} className="text-[#EC4899] font-bold hover:underline">Log In</button>
+                            </p>
+                        )}
                     </div>
                 </div>
             ),
-            action: (
-                <button 
-                    onClick={handleSignUpSubmit} 
-                    className="mt-8 w-full max-w-sm bg-[#EC4899] text-white font-bold py-3 rounded-lg shadow-lg shadow-pink-500/30 hover:scale-105 transition-transform"
-                >
-                    Create Account
-                </button>
-            )
+            // Hide default action button for auth step since we handle it in customContent
+            action: null 
         },
         {
             id: 'welcome',
@@ -398,7 +507,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
     const goToPrev = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
     const activeStep = steps[currentStep];
-    const isSignUpStep = activeStep.id === 'signup';
+    const isAuthStep = activeStep.id === 'auth';
 
     return (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black text-white font-sans">
@@ -420,7 +529,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                         <div key={index} className={`h-1.5 rounded-full transition-all duration-300 ${index === currentStep ? 'w-8 bg-[#EC4899]' : 'w-2 bg-gray-700'}`} />
                     ))}
                 </div>
-                {!isSignUpStep && (
+                {!isAuthStep && (
                     <button onClick={() => onFinish(false)} className="text-gray-400 font-semibold text-sm hover:text-white transition-colors">Skip</button>
                 )}
             </header>
@@ -436,20 +545,22 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                     {activeStep.visuals}
                     {activeStep.customContent}
                     
-                    <div className="flex justify-center">
-                        {activeStep.action}
-                    </div>
+                    {activeStep.action && (
+                        <div className="flex justify-center">
+                            {activeStep.action}
+                        </div>
+                    )}
                 </div>
             </main>
 
             <footer className="relative flex-shrink-0 p-6 flex justify-between items-center z-10 border-t border-gray-900/50">
-                {currentStep > 0 && !isSignUpStep ? (
+                {currentStep > 0 && !isAuthStep ? (
                     <button onClick={goToPrev} className="flex items-center gap-2 text-gray-400 font-semibold hover:text-white transition-colors">
                         <ChevronLeftIcon className="w-5 h-5" /> Back
                     </button>
                 ) : <div />}
                 
-                {currentStep < steps.length - 1 && !isSignUpStep && (
+                {currentStep < steps.length - 1 && !isAuthStep && (
                      <button onClick={goToNext} className="flex items-center gap-2 bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors">
                         Next <ChevronRightIcon className="w-5 h-5" />
                     </button>

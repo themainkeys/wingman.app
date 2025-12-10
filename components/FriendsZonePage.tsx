@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { User, Itinerary, FriendZoneChat, Promoter } from '../types';
 import { ChevronLeftIcon } from './icons/ChevronLeftIcon';
@@ -86,12 +88,15 @@ const SharedItineraryCard: React.FC<{ itinerary: Itinerary, creator: User }> = (
     </div>
 );
 
-const FriendZoneChatCard: React.FC<{ chat: FriendZoneChat, onOpen: () => void, onDelete: () => void, currentUser: User }> = ({ chat, onOpen, onDelete, currentUser }) => (
+const FriendZoneChatCard: React.FC<{ chat: FriendZoneChat, onOpen: () => void, onDelete: () => void, currentUser: User }> = ({ chat, onOpen, onDelete, currentUser }) => {
+    const activePromoterCount = chat.promoterIds?.length || 0;
+    
+    return (
     <div className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex items-center justify-between group transition-colors hover:border-[#EC4899]/30">
         <button onClick={onOpen} className="flex items-center gap-4 text-left flex-grow">
             <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-amber-400 relative">
                 <ChatIcon className="w-6 h-6" />
-                {chat.promoterId && (
+                {activePromoterCount > 0 && (
                     <div className="absolute -top-1 -right-1 bg-[#EC4899] p-1 rounded-full border-2 border-gray-900" title="Promoter in Chat">
                         <StarIcon className="w-3 h-3 text-white fill-current" />
                     </div>
@@ -101,7 +106,11 @@ const FriendZoneChatCard: React.FC<{ chat: FriendZoneChat, onOpen: () => void, o
                 <p className="font-bold text-white text-lg">{chat.name}</p>
                 <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-400">{chat.memberIds.length} participants</p>
-                    {chat.promoterId && <span className="text-[10px] bg-[#EC4899]/20 text-[#EC4899] px-1.5 py-0.5 rounded font-bold uppercase">Promoter Active</span>}
+                    {activePromoterCount > 0 && (
+                        <span className="text-[10px] bg-[#EC4899]/20 text-[#EC4899] px-1.5 py-0.5 rounded font-bold uppercase">
+                            {activePromoterCount > 1 ? `${activePromoterCount} Promoters` : 'Promoter Active'}
+                        </span>
+                    )}
                 </div>
             </div>
         </button>
@@ -115,7 +124,7 @@ const FriendZoneChatCard: React.FC<{ chat: FriendZoneChat, onOpen: () => void, o
             </button>
         )}
     </div>
-);
+)};
 
 export const FriendsZonePage: React.FC<FriendsZonePageProps> = ({ currentUser, allUsers, allItineraries, onNavigate, onAddFriend, onRemoveFriend, onViewProfile, friendZoneChats, onCreateChat, onDeleteChat, onOpenChat }) => {
     const [activeTab, setActiveTab] = useState<'chats' | 'circle' | 'find' | 'activity'>('chats');

@@ -46,6 +46,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ promoter, onClose, onA
 
   const [bookingFor, setBookingFor] = useState<'self' | 'guest'>('self');
   const [guestDetails, setGuestDetails] = useState({ name: '', email: '', phone: '' });
+  const [specialRequests, setSpecialRequests] = useState('');
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   
@@ -159,6 +160,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ promoter, onClose, onA
       tableDetails: {
         venue: selectedVenue, tableOption: selectedTable, promoter: promoter, numberOfGuests: totalGuests,
         guestDetails: bookingFor === 'guest' ? guestDetails : { name: currentUser.name, email: currentUser.email, phone: currentUser.phoneNumber || ''},
+        specialRequests: specialRequests
       }
     };
     
@@ -378,8 +380,19 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ promoter, onClose, onA
                             </div>
                         )}
                     </div>
+                    
+                    {/* 3. Special Requests */}
+                    <div className="mt-6">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Special Requests (Optional)</label>
+                        <textarea
+                            value={specialRequests}
+                            onChange={(e) => setSpecialRequests(e.target.value)}
+                            placeholder="e.g., Booth location preference, birthday celebration, bottle requests..."
+                            className="w-full bg-gray-800 border border-gray-600 text-white rounded-lg p-3 focus:ring-[#EC4899] focus:border-[#EC4899] resize-none h-24 placeholder-gray-500"
+                        />
+                    </div>
 
-                    {/* 3. Confirm */}
+                    {/* 4. Confirm */}
                     <button 
                         onClick={handleConfirmBooking} 
                         className="mt-8 w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg transition-transform duration-200 hover:scale-[1.02] hover:bg-green-400 shadow-lg shadow-green-900/20 focus:ring-2 focus:ring-white focus:outline-none"
@@ -400,41 +413,50 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({ promoter, onClose, onA
                 className="bg-[#121212] border border-gray-800 rounded-xl shadow-2xl w-full max-w-lg m-4 relative flex flex-col max-h-[90vh]"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-gray-800">
-                <h2 id="booking-modal-title" className="text-xl font-bold text-white truncate pr-4">{selectedVenue?.name || 'Book a Table'}</h2>
-                <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800 transition-colors" aria-label="Close booking flow">
-                    <CloseIcon className="w-6 h-6" />
-                </button>
+                <div className="flex justify-between items-center p-4 border-b border-gray-800 flex-shrink-0">
+                    <div>
+                        <h2 id="booking-modal-title" className="text-xl font-bold text-white">
+                            {step === 1 ? 'Select a Venue' : step === 2 ? 'Date & Guests' : step === 3 ? 'Select a Table' : 'Confirm Details'}
+                        </h2>
+                        {step > 1 && selectedVenue && <p className="text-xs text-gray-400">at {selectedVenue.name}</p>}
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800" aria-label="Close booking flow">
+                        <CloseIcon className="w-6 h-6" />
+                    </button>
                 </div>
-                
-                <div className="flex-grow p-6 overflow-y-auto">
-                {renderStepContent()}
+
+                <div className="flex-grow overflow-y-auto p-6 scroll-smooth">
+                    {renderStepContent()}
                 </div>
-                
+
                 {step > 1 && (
-                    <div className="flex-shrink-0 p-4 border-t border-gray-800">
-                        <button onClick={() => setStep(step - 1)} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors font-medium focus:ring-2 focus:ring-white focus:outline-none rounded p-1">
+                    <div className="p-4 border-t border-gray-800 flex-shrink-0">
+                        <button 
+                            onClick={() => setStep(step - 1)} 
+                            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
+                            aria-label="Go to previous step"
+                        >
                             <ChevronLeftIcon className="w-5 h-5"/>
                             Back
                         </button>
                     </div>
                 )}
             </div>
+            
+            {showSuccessModal && (
+                <AddedToPlansModal
+                    isOpen={true}
+                    onClose={() => {
+                        setShowSuccessModal(false);
+                        onClose();
+                    }}
+                    venueName={selectedVenue ? selectedVenue.name : ''}
+                    onCheckout={onNavigateToCheckout}
+                    onKeepBooking={onKeepBooking}
+                    keepBookingLabel="Keep Booking"
+                />
+            )}
         </div>
-        
-        {showSuccessModal && selectedVenue && (
-            <AddedToPlansModal 
-                isOpen={showSuccessModal}
-                onClose={() => {
-                    setShowSuccessModal(false);
-                    onClose(); // Close the main BookingFlow modal as well
-                }}
-                venueName={selectedVenue.name}
-                onCheckout={onNavigateToCheckout}
-                onKeepBooking={onKeepBooking}
-                keepBookingLabel="Keep booking"
-            />
-        )}
     </>
   );
 };

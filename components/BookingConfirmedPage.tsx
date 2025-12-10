@@ -75,7 +75,7 @@ export const BookingConfirmedPage: React.FC<BookingConfirmedPageProps> = ({ item
                         </div>
                         
                         <div className="p-6 bg-white">
-                            <div className="space-y-1 mb-6">
+                            <div className="space-y-4 mb-6">
                                 {items.map((item, idx) => {
                                     const itemPrice = item.paymentOption === 'full' ? item.fullPrice : item.depositPrice;
                                     const itemDisplayPrice = isTokenPayment 
@@ -90,17 +90,26 @@ export const BookingConfirmedPage: React.FC<BookingConfirmedPageProps> = ({ item
                                     else if (item.type === 'guestlist') subtitle = 'Guestlist Entry';
                                     else if (item.type === 'storeItem') subtitle = item.storeItemDetails?.item.category || 'Store Item';
 
+                                    const specialRequests = item.tableDetails?.specialRequests;
+
                                     return (
-                                        <div key={idx} className="flex justify-between items-start border-b border-dashed border-gray-200 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
-                                            <div className="text-left">
-                                                <p className="font-bold text-sm">{item.name}</p>
-                                                <p className="text-xs text-gray-500">{item.date || item.sortableDate || 'No Date'}</p>
-                                                <p className="text-xs text-gray-500">{subtitle}</p>
-                                                {item.paymentOption === 'deposit' && <span className="text-[10px] font-bold uppercase bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">Deposit</span>}
+                                        <div key={idx} className="border-b border-dashed border-gray-200 pb-3 last:border-0 last:pb-0">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="text-left">
+                                                    <p className="font-bold text-sm">{item.name}</p>
+                                                    <p className="text-xs text-gray-500">{item.date || item.sortableDate || 'No Date'}</p>
+                                                    <p className="text-xs text-gray-500">{subtitle}</p>
+                                                    {item.paymentOption === 'deposit' && <span className="text-[10px] font-bold uppercase bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">Deposit</span>}
+                                                </div>
+                                                <p className="font-mono font-semibold text-sm">
+                                                    {itemDisplayPrice}
+                                                </p>
                                             </div>
-                                            <p className="font-mono font-semibold text-sm">
-                                                {itemDisplayPrice}
-                                            </p>
+                                            {specialRequests && (
+                                                <div className="text-xs text-gray-500 italic bg-gray-50 p-2 rounded mt-1">
+                                                    "Request: {specialRequests}"
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -126,7 +135,7 @@ export const BookingConfirmedPage: React.FC<BookingConfirmedPageProps> = ({ item
                             </div>
                         </div>
 
-                        <div className="bg-gray-50 p-4 border-t border-gray-200 text-center">
+                        <div className="bg-gray-5 p-4 border-t border-gray-200 text-center">
                             <p className="text-xs text-gray-400 font-mono mb-1">Transaction ID: {transactionId}</p>
                             <img 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${transactionId}&bgcolor=F9FAFB&color=000000&qzone=0`} 

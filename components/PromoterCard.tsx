@@ -25,7 +25,11 @@ export const PromoterCard: React.FC<PromoterCardProps> = ({ promoter, onViewProf
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavoriteModalOpen(true);
+    if (isFavorite) {
+        setIsFavoriteModalOpen(true);
+    } else {
+        onToggleFavorite(promoter.id);
+    }
   };
 
   const confirmFavorite = () => {
@@ -118,9 +122,8 @@ export const PromoterCard: React.FC<PromoterCardProps> = ({ promoter, onViewProf
           <p className="text-gray-400 text-sm leading-relaxed line-clamp-2 h-10">{promoter.bio}</p>
           
           {showEarnings && promoter.earnings !== undefined && (
-              <div className="bg-gray-800/50 rounded-lg p-2 text-center border border-gray-700">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Earnings</p>
-                <p className="text-xl font-bold text-green-400">${promoter.earnings.toLocaleString()}</p>
+              <div className="pt-2">
+                <p className="text-sm font-bold text-green-400">Total Earnings: ${promoter.earnings.toLocaleString()}</p>
               </div>
           )}
 
@@ -162,7 +165,8 @@ export const PromoterCard: React.FC<PromoterCardProps> = ({ promoter, onViewProf
         isOpen={isFavoriteModalOpen}
         onClose={() => setIsFavoriteModalOpen(false)}
         onConfirm={confirmFavorite}
-        promoterName={promoter.name}
+        entityName={promoter.name}
+        entityType="Promoter"
         action={isFavorite ? 'remove' : 'add'}
       />
     </>

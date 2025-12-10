@@ -1,5 +1,6 @@
 
 
+
 export enum UserRole {
   ADMIN = 'Admin',
   PROMOTER = 'Promoter',
@@ -19,6 +20,7 @@ export interface User {
   city?: string;
   joinDate?: string;
   instagramHandle?: string;
+  tiktokHandle?: string;
   phoneNumber?: string;
   preferences?: {
     music: string[];
@@ -53,6 +55,7 @@ export interface User {
   referredByPromoterId?: number;
   promoterRatings?: { promoterId: number; rating: number }[];
   hasProfileReward?: boolean;
+  notificationsEnabled?: boolean;
 }
 
 export interface UserWithAnalytics extends User {
@@ -397,7 +400,7 @@ export interface FriendZoneChat {
     name: string;
     creatorId: number;
     memberIds: number[];
-    promoterId?: number; // Optional promoter added to chat
+    promoterIds?: number[]; // Array of promoter IDs added to chat
 }
 
 export interface FriendZoneChatMessage {
@@ -454,6 +457,7 @@ export interface CartItem {
       guestDetails?: { name: string; email: string; phone: string; };
       numberOfGuests?: number;
       selectedBottles?: { id: string; name: string; price: number; quantity: number; }[];
+      specialRequests?: string;
   };
 
   // Event/Experience details can be added later
@@ -505,6 +509,7 @@ export interface PaymentMethod {
     isDefault: boolean;
     brand?: 'Visa' | 'Mastercard' | 'Amex' | 'Discover';
     cardholderName?: string;
+    detail?: string; // e.g., email for PayPal, wallet address for Crypto
 }
 
 export type Page =

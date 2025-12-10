@@ -1,5 +1,4 @@
 
-
 import { Venue, Promoter, Booking, Event, Challenge, TableOption, Experience, UserAccessLevel, User, UserRole, Bottle, StoreItem, Transaction, AccessGroup, GroupPost, Itinerary, AppNotification, GuestlistChat, GuestlistChatMessage, PromoterApplication, EventInvitationRequest, EventInvitation, EventChat, EventChatMessage, GuestlistJoinRequest, DataExportRequest, FriendZoneChat, FriendZoneChatMessage, PaymentMethod } from '../types';
 
 // Mock Users
@@ -33,6 +32,21 @@ export const users: User[] = [
     preferences: { music: ['Pop', 'EDM'], activities: ['Pool Party', 'Lounge'], personality: 'Energetic', timeOfDay: 'Both' },
     status: 'active',
     friends: [101]
+  },
+  {
+    id: 103,
+    name: 'Newbie Nick',
+    email: 'nick@general.com',
+    profilePhoto: 'https://i.pravatar.cc/150?u=103',
+    accessLevel: UserAccessLevel.GENERAL,
+    role: UserRole.USER,
+    city: 'Miami',
+    joinDate: '2024-01-01',
+    instagramHandle: 'newbie_nick',
+    phoneNumber: '+15550103',
+    preferences: { music: ['Top 40'], activities: ['Dining'], personality: 'Observer', timeOfDay: 'Daytime' },
+    status: 'active',
+    friends: []
   },
   {
     id: 1, // Matches Promoter Anderson in App.tsx
@@ -278,14 +292,14 @@ export const mockFriendZoneChats: FriendZoneChat[] = [
         name: "Weekend Plans 🥂",
         creatorId: 101,
         memberIds: [101, 102],
-        promoterId: undefined
+        promoterIds: []
     },
     {
         id: 2,
         name: "Birthday Trip 🌴",
         creatorId: 102,
         memberIds: [102, 101],
-        promoterId: 1 // Anderson added
+        promoterIds: [1] // Anderson added
     }
 ];
 

@@ -45,7 +45,8 @@ export const SavedPromoterCard: React.FC<SavedPromoterCardProps> = ({ promoter, 
         isOpen={isFavoriteModalOpen}
         onClose={() => setIsFavoriteModalOpen(false)}
         onConfirm={confirmFavorite}
-        promoterName={promoter.name}
+        entityName={promoter.name}
+        entityType="Promoter"
         action="remove"
       />
     </>

@@ -6,6 +6,7 @@ import { TrashIcon } from './icons/TrashIcon';
 import { EyeIcon } from './icons/FeatureIcons';
 import { UserMinusIcon } from './icons/UserMinusIcon';
 import { UserPlusIcon } from './icons/UserPlusIcon';
+import { ChartBarIcon } from './icons/ChartBarIcon';
 
 interface AdminPromoterListItemProps {
     promoter: Promoter;
@@ -14,9 +15,10 @@ interface AdminPromoterListItemProps {
     onDelete: (promoter: Promoter) => void;
     onPreview: (promoter: Promoter) => void;
     onSuspend: (user: User) => void;
+    onViewStats?: (promoter: Promoter) => void;
 }
 
-export const AdminPromoterListItem: React.FC<AdminPromoterListItemProps> = ({ promoter, user, onEdit, onDelete, onPreview, onSuspend }) => {
+export const AdminPromoterListItem: React.FC<AdminPromoterListItemProps> = ({ promoter, user, onEdit, onDelete, onPreview, onSuspend, onViewStats }) => {
     
     const status = user.status;
 
@@ -49,16 +51,21 @@ export const AdminPromoterListItem: React.FC<AdminPromoterListItemProps> = ({ pr
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
-                    <button onClick={() => onPreview(promoter)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors" aria-label={`Preview promoter ${promoter.name}`}>
+                    {onViewStats && (
+                        <button onClick={() => onViewStats(promoter)} className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-800 rounded-md transition-colors" aria-label={`View stats for ${promoter.name}`} title="View Stats">
+                            <ChartBarIcon className="w-5 h-5" />
+                        </button>
+                    )}
+                    <button onClick={() => onPreview(promoter)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors" aria-label={`Preview promoter ${promoter.name}`} title="Preview Profile">
                         <EyeIcon className="w-5 h-5" />
                     </button>
-                    <button onClick={() => onSuspend(user)} className="p-2 text-gray-400 hover:bg-gray-800 rounded-md transition-colors" aria-label={status === 'suspended' ? `Unsuspend promoter ${promoter.name}` : `Suspend promoter ${promoter.name}`}>
+                    <button onClick={() => onSuspend(user)} className="p-2 text-gray-400 hover:bg-gray-800 rounded-md transition-colors" aria-label={status === 'suspended' ? `Unsuspend promoter ${promoter.name}` : `Suspend promoter ${promoter.name}`} title={status === 'suspended' ? 'Unsuspend' : 'Suspend'}>
                         {status === 'suspended' ? <UserPlusIcon className="w-5 h-5 text-green-400" /> : <UserMinusIcon className="w-5 h-5 text-yellow-400" />}
                     </button>
-                    <button onClick={() => onEdit(promoter, user)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors" aria-label={`Edit promoter ${promoter.name}`}>
+                    <button onClick={() => onEdit(promoter, user)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors" aria-label={`Edit promoter ${promoter.name}`} title="Edit">
                         <PencilSquareIcon className="w-5 h-5" />
                     </button>
-                    <button onClick={() => onDelete(promoter)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-800 rounded-md transition-colors" aria-label={`Delete promoter ${promoter.name}`}>
+                    <button onClick={() => onDelete(promoter)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-800 rounded-md transition-colors" aria-label={`Delete promoter ${promoter.name}`} title="Delete">
                         <TrashIcon className="w-5 h-5" />
                     </button>
                 </div>
