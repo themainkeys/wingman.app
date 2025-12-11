@@ -152,7 +152,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
             }
         }
 
-        // Mock Login: Check if email matches existing user to switch account
+        // Login Logic: Check for existing user
         if (authMode === 'login' && allUsers && onSwitchUser) {
             const foundUser = allUsers.find(u => u.email.toLowerCase() === authData.email.toLowerCase());
             
@@ -160,16 +160,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                  setIsAuthenticating(true);
                  setTimeout(() => {
                     setIsAuthenticating(false);
-                    onSwitchUser(foundUser); // This effectively logs them in
-                    onFinish(true); // Close onboarding if switch happens
+                    onSwitchUser(foundUser); // Log them in
+                    onFinish(true); // Close onboarding
                  }, 1500);
+                 return;
+            } else {
+                 alert("User not found. Please sign up.");
                  return;
             }
         }
         
         setIsAuthenticating(true);
         
-        // Simulate API call for regular flow (no switch)
+        // Signup Simulation
         setTimeout(() => {
             setIsAuthenticating(false);
             if (onUpdateUser) {
@@ -186,20 +189,33 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
 
     const handleSocialLogin = (provider: 'Google' | 'Facebook') => {
         setIsAuthenticating(true);
-        // Simulate OAuth Process
+
+        const mockEmail = provider === 'Google' ? 'alex@google.com' : 'sarah@facebook.com';
+
+        // Check if this social user already exists in our "database"
+        const existingUser = allUsers?.find(u => u.email.toLowerCase() === mockEmail.toLowerCase());
+
         setTimeout(() => {
             setIsAuthenticating(false);
-            if (onUpdateUser) {
-                onUpdateUser({
-                    ...user,
-                    name: `Alex ${provider}`,
-                    email: `alex@${provider.toLowerCase()}.com`,
-                    profilePhoto: provider === 'Google' 
-                        ? 'https://picsum.photos/seed/googleUser/200/200' 
-                        : 'https://picsum.photos/seed/fbUser/200/200'
-                });
+            
+            if (existingUser && onSwitchUser) {
+                 // Existing user found -> Login
+                 onSwitchUser(existingUser);
+                 onFinish(true);
+            } else {
+                 // New user -> Pre-fill profile and continue onboarding
+                 if (onUpdateUser) {
+                    onUpdateUser({
+                        ...user,
+                        name: existingUser ? existingUser.name : `Alex ${provider}`,
+                        email: mockEmail,
+                        profilePhoto: provider === 'Google' 
+                            ? 'https://lh3.googleusercontent.com/a/ACg8ocIq8jF8=s96-c' 
+                            : 'https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=12345&height=200&width=200&ext=12345'
+                    });
+                }
+                goToNext();
             }
-            goToNext();
         }, 1500);
     };
 
@@ -351,7 +367,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ user, onFinish
                     </div>
                 </div>
             ),
-            // Hide default action button for auth step since we handle it in customContent
             action: null 
         },
         {

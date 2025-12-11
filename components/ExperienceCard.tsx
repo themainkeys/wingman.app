@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Experience, UserAccessLevel, User, UserRole } from '../types';
 import { KeyIcon } from './icons/KeyIcon';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { TokenIcon } from './icons/TokenIcon';
-import { CheckIcon } from './icons/CheckIcon';
+import { HeartIcon } from './icons/HeartIcon';
+import { BookmarkIcon } from './icons/BookmarkIcon';
 
 interface ExperienceCardProps {
   experience: Experience;
@@ -13,6 +14,10 @@ interface ExperienceCardProps {
   onBook: (experience: Experience) => void;
   invitationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   onRequestAccess?: (experienceId: number) => void;
+  isLiked?: boolean;
+  onToggleLike?: () => void;
+  isBookmarked?: boolean;
+  onToggleBookmark?: () => void;
 }
 
 const USD_TO_TMKC_RATE = 100;
@@ -61,7 +66,18 @@ const getAccessLevelPriority = (level: UserAccessLevel) => {
     }
 }
 
-export const ExperienceCard: React.FC<ExperienceCardProps> = ({ experience, currentUser, onViewDetails, onBook, invitationStatus = 'none', onRequestAccess }) => {
+export const ExperienceCard: React.FC<ExperienceCardProps> = ({ 
+    experience, 
+    currentUser, 
+    onViewDetails, 
+    onBook, 
+    invitationStatus = 'none', 
+    onRequestAccess,
+    isLiked,
+    onToggleLike,
+    isBookmarked,
+    onToggleBookmark
+}) => {
     
     const priceDetails = getPriceForUser(experience, currentUser);
     const tokenPrice = priceDetails.price !== undefined && priceDetails.price > 0 ? priceDetails.price * USD_TO_TMKC_RATE : undefined;
@@ -122,11 +138,39 @@ export const ExperienceCard: React.FC<ExperienceCardProps> = ({ experience, curr
     }
 
     return (
-        <div onClick={() => onViewDetails(experience)} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden transition-all duration-300 group cursor-pointer">
+        <div onClick={() => onViewDetails(experience)} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden transition-all duration-300 group cursor-pointer relative">
             <div className="relative">
                 <img className="w-full h-56 object-cover" src={experience.coverImage} alt={experience.title} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 {renderTag()}
+                
+                {/* Like/Bookmark Actions */}
+                <div className="absolute top-3 left-3 flex gap-2 z-10">
+                    {onToggleLike && (
+                         <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleLike();
+                            }}
+                            className={`p-2 rounded-full transition-all active:scale-95 backdrop-blur-sm ${isLiked ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white hover:bg-black/60'}`}
+                            aria-label={isLiked ? `Unlike ${experience.title}` : `Like ${experience.title}`}
+                        >
+                            <HeartIcon className="w-4 h-4" isFilled={isLiked} />
+                        </button>
+                    )}
+                     {onToggleBookmark && (
+                         <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleBookmark();
+                            }}
+                            className={`p-2 rounded-full transition-all active:scale-95 backdrop-blur-sm ${isBookmarked ? 'bg-amber-400/80 text-white' : 'bg-black/40 text-white hover:bg-black/60'}`}
+                            aria-label={isBookmarked ? `Remove ${experience.title} from bookmarks` : `Bookmark ${experience.title}`}
+                        >
+                            <BookmarkIcon className="w-4 h-4" isFilled={isBookmarked} />
+                        </button>
+                    )}
+                </div>
             </div>
             <div className="p-4 flex flex-col h-56 justify-between">
                 <div>

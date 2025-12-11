@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Promoter, Venue, User, Page, Event } from '../types';
+import { Promoter, Venue, User, Page, Event, Experience } from '../types';
 import { venues as mockVenues } from '../data/mockData';
 import { SavedVenueCard } from './SavedVenueCard';
 import { ChevronLeftIcon } from './icons/ChevronLeftIcon';
 import { SavedPromoterCard } from './SavedPromoterCard';
 import { EventCard } from './EventCard';
+import { ExperienceCard } from './ExperienceCard';
 
 interface FavoritesPageProps {
   promoters: Promoter[];
@@ -23,9 +24,14 @@ interface FavoritesPageProps {
   venues?: Venue[];
   bookmarkedEventIds?: number[];
   onToggleBookmarkEvent?: (eventId: number | string) => void;
+  likedExperienceIds?: number[];
+  experiences?: Experience[];
+  onToggleLikeExperience?: (experienceId: number) => void;
+  bookmarkedExperienceIds?: number[];
+  onToggleBookmarkExperience?: (experienceId: number) => void;
 }
 
-type Tab = 'promoters' | 'venues' | 'events' | 'bookmarks';
+type Tab = 'promoters' | 'venues' | 'events' | 'bookmarks' | 'experiences';
 
 export const FavoritesPage: React.FC<FavoritesPageProps> = ({ 
     promoters,
@@ -42,7 +48,12 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
     onViewEvent,
     venues = mockVenues,
     bookmarkedEventIds = [],
-    onToggleBookmarkEvent
+    onToggleBookmarkEvent,
+    likedExperienceIds = [],
+    experiences = [],
+    onToggleLikeExperience,
+    bookmarkedExperienceIds = [],
+    onToggleBookmarkExperience
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('events');
 
@@ -59,6 +70,8 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
       return bookmarkedEventIds.includes(originalId);
   });
 
+  const favoriteExperiences = experiences.filter(e => likedExperienceIds.includes(e.id));
+
   return (
     <div className="p-4 md:p-8 animate-fade-in text-white pb-24">
       <button onClick={() => onNavigate('userProfile')} className="inline-flex items-center gap-2 text-gray-300 hover:text-white transition-colors mb-6 text-sm font-semibold">
@@ -74,6 +87,12 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
             className={`px-4 py-2 text-sm md:text-lg font-semibold transition-colors whitespace-nowrap ${activeTab === 'events' ? 'text-white border-b-2 border-[#EC4899]' : 'text-gray-400'}`}
           >
             Events ({favoriteEvents.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('experiences')}
+            className={`px-4 py-2 text-sm md:text-lg font-semibold transition-colors whitespace-nowrap ${activeTab === 'experiences' ? 'text-white border-b-2 border-[#EC4899]' : 'text-gray-400'}`}
+          >
+            Experiences ({favoriteExperiences.length})
           </button>
           <button 
             onClick={() => setActiveTab('bookmarks')}
@@ -118,6 +137,32 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
             ) : (
                  <div className="text-center py-16 bg-gray-900 rounded-lg border border-gray-800">
                     <p className="text-gray-400">You haven't liked any events yet.</p>
+                 </div>
+            )}
+        </div>
+      )}
+
+       {activeTab === 'experiences' && (
+        <div className="space-y-6">
+            {favoriteExperiences.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {favoriteExperiences.map(exp => (
+                        <ExperienceCard 
+                            key={exp.id}
+                            experience={exp}
+                            currentUser={currentUser}
+                            onViewDetails={() => {}} // Could expand in modal
+                            onBook={() => {}} // Could trigger booking flow
+                            isLiked={true}
+                            onToggleLike={() => onToggleLikeExperience?.(exp.id)}
+                            isBookmarked={bookmarkedExperienceIds?.includes(exp.id)}
+                            onToggleBookmark={() => onToggleBookmarkExperience?.(exp.id)}
+                        />
+                    ))}
+                </div>
+            ) : (
+                 <div className="text-center py-16 bg-gray-900 rounded-lg border border-gray-800">
+                    <p className="text-gray-400">You haven't liked any experiences yet.</p>
                  </div>
             )}
         </div>

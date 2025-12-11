@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { Promoter, User, Page, AccessGroup, EventInvitationRequest, UserAccessLevel, Event, UserRole, Venue, CartItem, PromoterApplication, GuestlistJoinRequest, StoreItem, EventInvitation, AppNotification } from '../types';
+import { Promoter, User, Page, AccessGroup, EventInvitationRequest, UserAccessLevel, Event, UserRole, Venue, CartItem, PromoterApplication, GuestlistJoinRequest, StoreItem, EventInvitation, AppNotification, PushCampaign } from '../types';
 import { ManagementTab } from './admin/ManagementTab';
 import { AnalyticsTab } from './admin/AnalyticsTab';
 import { AdminPromoterListItem } from './AdminPromoterListItem';
@@ -59,6 +60,10 @@ interface AdminDashboardProps {
     onPreviewUser: (user: User) => void;
     eventInvitations: EventInvitation[];
     onSendPushNotification: (notification: Omit<AppNotification, 'id' | 'time' | 'read'>) => void;
+    pushCampaigns: PushCampaign[];
+    onCreatePushCampaign: (campaign: PushCampaign) => void;
+    onToggleCampaignStatus: (campaignId: string) => void;
+    onDeleteCampaign: (campaignId: string) => void;
     onBulkDeleteEvents?: (eventIds: (number | string)[]) => void;
     onBulkUpdateEvents?: (eventIds: (number | string)[], updates: Partial<Event>) => void;
 }
@@ -396,7 +401,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         events={props.events}
                         venues={props.venues}
                         users={props.users}
-                        onSend={props.onSendPushNotification}
+                        campaigns={props.pushCampaigns}
+                        onCreateCampaign={props.onCreatePushCampaign}
+                        onToggleStatus={props.onToggleCampaignStatus}
+                        onDelete={props.onDeleteCampaign}
                     />
                 )}
             </div>

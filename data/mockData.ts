@@ -49,6 +49,36 @@ export const users: User[] = [
     friends: []
   },
   {
+    id: 104,
+    name: 'Alex Google',
+    email: 'alex@google.com',
+    profilePhoto: 'https://lh3.googleusercontent.com/a/ACg8ocIq8jF8=s96-c', // Generic google-like placeholder URL
+    accessLevel: UserAccessLevel.ACCESS_MALE,
+    role: UserRole.USER,
+    city: 'New York',
+    joinDate: '2023-05-10',
+    instagramHandle: 'alex_g',
+    phoneNumber: '+15550104',
+    status: 'active',
+    bio: 'Logged in via Google',
+    preferences: { music: ['Tech House'], activities: ['Rooftop'], personality: 'Chill', timeOfDay: 'Nighttime' }
+  },
+  {
+    id: 105,
+    name: 'Sarah Facebook',
+    email: 'sarah@facebook.com',
+    profilePhoto: 'https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=12345&height=200&width=200&ext=12345', // Generic FB-like
+    accessLevel: UserAccessLevel.APPROVED_GIRL,
+    role: UserRole.USER,
+    city: 'Los Angeles',
+    joinDate: '2023-06-15',
+    instagramHandle: 'sarah_fb',
+    phoneNumber: '+15550105',
+    status: 'active',
+    bio: 'Logged in via Facebook',
+    preferences: { music: ['Hip Hop', 'R&B'], activities: ['Nightclub'], personality: 'Social', timeOfDay: 'Both' }
+  },
+  {
     id: 1, // Matches Promoter Anderson in App.tsx
     name: 'Anderson',
     email: 'anderson@example.com',

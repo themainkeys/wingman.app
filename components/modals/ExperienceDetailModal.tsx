@@ -8,6 +8,8 @@ import { KeyIcon } from '../icons/KeyIcon';
 import { TokenIcon } from '../icons/TokenIcon';
 import { LockClosedIcon } from '../icons/LockClosedIcon';
 import { UsersIcon } from '../icons/UsersIcon';
+import { HeartIcon } from '../icons/HeartIcon';
+import { BookmarkIcon } from '../icons/BookmarkIcon';
 
 interface ExperienceDetailModalProps {
   experience: Experience;
@@ -18,6 +20,10 @@ interface ExperienceDetailModalProps {
   onRequestAccess?: (experienceId: number) => void;
   venue?: Venue;
   onJoinGuestlist?: (context: { promoter?: Promoter; venue?: Venue; date?: string }) => void;
+  isLiked?: boolean;
+  onToggleLike?: () => void;
+  isBookmarked?: boolean;
+  onToggleBookmark?: () => void;
 }
 
 const USD_TO_TMKC_RATE = 100;
@@ -49,7 +55,20 @@ const getPriceForUser = (experience: Experience, user: User): { price?: number; 
 };
 
 
-export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({ experience, currentUser, onClose, onBook, invitationStatus = 'none', onRequestAccess, venue, onJoinGuestlist }) => {
+export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({ 
+    experience, 
+    currentUser, 
+    onClose, 
+    onBook, 
+    invitationStatus = 'none', 
+    onRequestAccess, 
+    venue, 
+    onJoinGuestlist,
+    isLiked,
+    onToggleLike,
+    isBookmarked,
+    onToggleBookmark
+}) => {
   const priceDetails = getPriceForUser(experience, currentUser);
   const tokenPrice = priceDetails.price !== undefined && priceDetails.price > 0 ? priceDetails.price * USD_TO_TMKC_RATE : undefined;
   
@@ -119,13 +138,41 @@ export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({ ex
         <div className="relative">
           <img src={experience.coverImage} alt={experience.title} className="w-full h-56 object-cover rounded-t-xl" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/50 to-transparent"></div>
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-white/20 transition-colors"
-            aria-label="Close modal"
-          >
-            <CloseIcon className="w-6 h-6" />
-          </button>
+          
+           {/* Actions: Close, Like, Bookmark */}
+           <div className="absolute top-4 right-4 flex gap-2">
+                {onToggleLike && (
+                     <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleLike();
+                        }}
+                        className={`p-2 rounded-full transition-all active:scale-95 backdrop-blur-sm ${isLiked ? 'bg-pink-500/80 text-white' : 'bg-black/50 text-white hover:bg-white/20'}`}
+                        aria-label={isLiked ? `Unlike ${experience.title}` : `Like ${experience.title}`}
+                    >
+                        <HeartIcon className="w-5 h-5" isFilled={isLiked} />
+                    </button>
+                )}
+                 {onToggleBookmark && (
+                     <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleBookmark();
+                        }}
+                        className={`p-2 rounded-full transition-all active:scale-95 backdrop-blur-sm ${isBookmarked ? 'bg-amber-400/80 text-white' : 'bg-black/50 text-white hover:bg-white/20'}`}
+                        aria-label={isBookmarked ? `Remove ${experience.title} from bookmarks` : `Bookmark ${experience.title}`}
+                    >
+                        <BookmarkIcon className="w-5 h-5" isFilled={isBookmarked} />
+                    </button>
+                )}
+                <button
+                    onClick={onClose}
+                    className="bg-black/50 p-2 rounded-full text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
+                    aria-label="Close modal"
+                >
+                    <CloseIcon className="w-5 h-5" />
+                </button>
+          </div>
         </div>
 
         <div className="p-6 flex-grow overflow-y-auto">

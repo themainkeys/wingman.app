@@ -1,6 +1,4 @@
 
-
-
 export enum UserRole {
   ADMIN = 'Admin',
   PROMOTER = 'Promoter',
@@ -489,6 +487,19 @@ export interface AppNotification {
   isPush?: boolean;
   itemId?: number | string;
   itemType?: 'event' | 'venue';
+}
+
+export interface PushCampaign {
+  id: string;
+  title: string;
+  message: string;
+  type: 'event' | 'venue' | 'guestlist' | 'general';
+  targetId?: string;
+  frequency: '6 Hours' | '12 Hours' | '24 Hours' | '48 Hours' | '72 Hours' | '5 Days' | '7 Days' | '15 Days';
+  duration: string; // e.g., 'Until Stopped' or a date
+  startDate: string;
+  status: 'active' | 'inactive';
+  sentCount: number;
 }
 
 export interface DataExportRequest {

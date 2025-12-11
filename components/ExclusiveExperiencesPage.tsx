@@ -15,9 +15,26 @@ interface ExclusiveExperiencesPageProps {
   onRequestAccess: (experienceId: number) => void;
   venues: Venue[];
   onJoinGuestlist: (context: { promoter?: Promoter; venue?: Venue; date?: string }) => void;
+  likedExperienceIds?: number[];
+  onToggleLikeExperience?: (experienceId: number) => void;
+  bookmarkedExperienceIds?: number[];
+  onToggleBookmarkExperience?: (experienceId: number) => void;
 }
 
-export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> = ({ currentUser, onBookExperience, venueFilter, onClearFilter, experienceRequests, onRequestAccess, venues, onJoinGuestlist }) => {
+export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> = ({ 
+    currentUser, 
+    onBookExperience, 
+    venueFilter, 
+    onClearFilter, 
+    experienceRequests, 
+    onRequestAccess, 
+    venues, 
+    onJoinGuestlist,
+    likedExperienceIds = [],
+    onToggleLikeExperience,
+    bookmarkedExperienceIds = [],
+    onToggleBookmarkExperience
+}) => {
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
 
   const filteredExperiences = useMemo(() => {
@@ -79,6 +96,10 @@ export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> =
               onBook={onBookExperience}
               invitationStatus={getInvitationStatus(experience.id)}
               onRequestAccess={onRequestAccess}
+              isLiked={likedExperienceIds.includes(experience.id)}
+              onToggleLike={() => onToggleLikeExperience?.(experience.id)}
+              isBookmarked={bookmarkedExperienceIds.includes(experience.id)}
+              onToggleBookmark={() => onToggleBookmarkExperience?.(experience.id)}
             />
           ))}
         </div>
@@ -93,6 +114,10 @@ export const ExclusiveExperiencesPage: React.FC<ExclusiveExperiencesPageProps> =
           onRequestAccess={onRequestAccess}
           venue={venues.find(v => v.id === selectedExperience.venueId)}
           onJoinGuestlist={onJoinGuestlist}
+          isLiked={likedExperienceIds.includes(selectedExperience.id)}
+          onToggleLike={() => onToggleLikeExperience?.(selectedExperience.id)}
+          isBookmarked={bookmarkedExperienceIds.includes(selectedExperience.id)}
+          onToggleBookmark={() => onToggleBookmarkExperience?.(selectedExperience.id)}
         />
       )}
     </>
